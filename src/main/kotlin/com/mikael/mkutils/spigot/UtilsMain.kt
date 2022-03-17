@@ -105,7 +105,6 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
                         RedisAPI.connectClient(true)
                     } catch (ex: Exception) {
                         ex.printStackTrace()
-                        error("Cannot reconnect to Redis server")
                     }
                 }
             }
@@ -117,6 +116,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)")
 
         syncDelay(20) {
+            MineReflect.getVersion() // Prints the server version
             serverEnabled = true
             log("§aThe server has been marked as available!")
 
@@ -217,7 +217,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
             "MenuAPI.autoUpdateTicks",
             60,
             "Time to refresh players open menus.",
-            "Values less than 20 will cause server lag. 20 ticks = 1s."
+            "Values less than 20 will cause lag. 20 ticks = 1s."
         )
         config.add(
             "BungeeAPI.isEnabled", false, "Whether to activate the BungeeAPI."
@@ -225,7 +225,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         config.add(
             "BungeeAPI.useRedisCache", false,
             "Whether to use Redis to improve the server performance.",
-            "You CAN'T active this if you're not using a Redis servidor on mkUtils."
+            "You CAN'T active this if you're not using a Redis server on mkUtils."
         )
         config.add(
             "BungeeAPI.currentServerName", "server",

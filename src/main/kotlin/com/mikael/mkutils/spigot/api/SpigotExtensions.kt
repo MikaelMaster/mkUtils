@@ -25,10 +25,10 @@ fun Location.smokeDenyBuild(player: Player) {
 }
 
 fun World.newHologram(loc: Location, line: String): ArmorStand {
-    val holo = loc.world!!.spawn(loc, ArmorStand::class.java)
     if (!loc.chunk.isLoaded) {
         loc.chunk.load(true)
     }
+    val holo = loc.world!!.spawn(loc, ArmorStand::class.java)
     holo.setGravity(false)
     holo.isVisible = false
     holo.isSmall = true
@@ -92,6 +92,7 @@ fun Player.giveItem(item: ItemStack): Item? {
     return null
 }
 
+@Deprecated("Does not work on java version 16 or higher.")
 inline fun Player.runCommand(thing: (() -> Unit)): Boolean {
     return try {
         thing.invoke()
@@ -105,7 +106,7 @@ inline fun Player.runCommand(thing: (() -> Unit)): Boolean {
 }
 
 @Deprecated("Does not work on java version 16 or higher.")
-fun Player.runCommandAsync(sendLoading: Boolean = true, thing: () -> (Unit)) {
+inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing: () -> (Unit)) {
     if (sendLoading) {
         this.sendMessage("§eLoading...")
     }
