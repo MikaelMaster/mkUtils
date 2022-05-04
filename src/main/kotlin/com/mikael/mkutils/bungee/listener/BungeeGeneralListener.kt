@@ -24,12 +24,14 @@ class BungeeGeneralListener : Listener {
     @EventHandler
     fun onPlayerJoin(e: PostLoginEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
+        RedisAPI.updateCounter("mkUtils", "mkbungeeapi:playercount", 1)
         RedisAPI.client!!.set("mkutils:bungee:players:${e.player.name.lowercase()}", "null")
     }
 
     @EventHandler
     fun onPlayerQuit(e: PlayerDisconnectEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
+        RedisAPI.updateCounter("mkUtils", "mkbungeeapi:playercount", -1)
         RedisAPI.client!!.del("mkutils:bungee:players:${e.player.name.lowercase()}")
     }
 

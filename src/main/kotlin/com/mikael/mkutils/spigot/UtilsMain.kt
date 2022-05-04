@@ -1,5 +1,6 @@
 package com.mikael.mkutils.spigot
 
+import com.mikael.mkutils.api.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
@@ -38,6 +39,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         lateinit var instance: UtilsMain
     }
 
+    lateinit var mySqlUpdaterTimer: Thread
     lateinit var manager: UtilsManager
     lateinit var config: Config
     lateinit var messages: Config
@@ -52,9 +54,13 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         val start = System.currentTimeMillis()
 
         log("§eStarting loading...")
+        MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
         HybridTypes // Hybrid types loading
         BukkitTypes.register() // Bukkit types loading
         store<RedisConnectionData>()
+
+        // Extra.FORMAT_DATE = SimpleDateFormat("MM/dd/yyyy")
+        // Extra.FORMAT_DATETIME = SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
 
         log("§eLoading directories...")
         storage()
@@ -68,6 +74,8 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         reloadMessages() // x2
         StorageAPI.updateReferences()
 
+        log("§eLoading replacers...")
+        replacers()
         log("§eLoading extras...")
         reload()
         log("§eStarting tasks...")
@@ -120,9 +128,15 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
             serverEnabled = true
             log("§aThe server has been marked as available!")
 
+            // Show MK Plugins
+            log("§aLoaded MK Plugins:")
+            for (mkPlugin in MKPluginSystem.loadedMKPlugins) {
+                log(" §7▪ §e${mkPlugin}")
+            }
+
             // MySQL queue updater timer
             if (utilsmanager.sqlManager.hasConnection()) {
-                thread {
+                mySqlUpdaterTimer = thread {
                     while (true) {
                         utilsmanager.sqlManager.runChanges()
                         Thread.sleep(1000)
@@ -147,13 +161,23 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
     }
 
     private fun storage() {
-        StorageAPI.setDebug(true)
+        StorageAPI.setDebug(false)
         BukkitStorables.load()
 
         // StorableTypes
         StorageAPI.registerStorable(Location::class.java, LocationStorable())
 
         StorageAPI.startGson()
+    }
+
+    private fun replacers() {
+        Mine.addReplacer("mkbungeeapi_players") {
+            if (!config.getBoolean("BungeeAPI.isEnabled")) {
+                -1
+            } else {
+                RedisAPI.client!!.get("mkUtils:mkbungeeapi:playercount").toInt()
+            }
+        }
     }
 
     private fun reload() {
@@ -256,7 +280,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
     }
 
     fun log(msg: String) {
-        Bukkit.getConsoleSender().sendMessage("§b[mkUtils] §f${msg}")
+        Bukkit.getConsoleSender().sendMessage("§b[${systemName}] §f${msg}")
     }
 
     override fun getPlugin(): Any {

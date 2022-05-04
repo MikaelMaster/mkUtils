@@ -1,5 +1,6 @@
 package com.mikael.mkutils.api.redis
 
+import net.eduard.api.lib.plugin.IPluginInstance
 import redis.clients.jedis.Connection
 import redis.clients.jedis.Jedis
 
@@ -85,17 +86,67 @@ object RedisAPI {
     }
 
     /**
+     * Verify if a data existis on the redis server.
+     *
+     * @param key the key to verify if the value existis.
+     * @return True if the data existis. Otherwise, false.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     */
+    fun existis(key: String): Boolean {
+        if (!isInitialized()) error("Cannot insert any data to a null redis server")
+        return client!!.exists(key)
+    }
+
+    /**
      * Inserts a data into redis server using the given Key and Value.
      *
+     * @param plugin the plugin instance owner of the data.
      * @param key the key to push the value.
      * @param value the value to be pushed into redis server. The value will always be converted to string.
      * @return True if the insert was completed. Otherwise, false.
      * @throws IllegalStateException if the Redis client or the connection is null.
      */
-    fun insert(key: String, value: Any): Boolean {
+    fun insert(plugin: IPluginInstance, key: String, value: Any): Boolean {
         if (!isInitialized()) error("Cannot insert any data to a null redis server")
         return try {
-            client!!.set(key, value.toString())
+            client!!.set("${plugin.systemName}:${key}", value.toString())
+            true
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * Inserts a String List into the redis server using the given `key` and `stringList`.
+     *
+     * @param plugin the plugin instance owner of the data.
+     * @param key the key to push the value.
+     * @param stringList the String List to be pushed into redis server.
+     * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
+     * @return True if the insert was completed. Otherwise, false.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     */
+    fun insertStringList(
+        plugin: IPluginInstance,
+        key: String,
+        stringList: MutableList<String>,
+        useExistingData: Boolean = true
+    ): Boolean {
+        if (!isInitialized()) error("Cannot insert any data to a null redis server")
+        return try {
+            if (useExistingData) {
+                if (existis("${plugin.systemName}:${key}")) {
+                    for (string in getStringList(plugin, "${plugin.systemName}:${key}")) {
+                        stringList.add(string)
+                    }
+                }
+            }
+            val stringBuilder = StringBuilder()
+            for (string in stringList) {
+                stringBuilder.append("${string};")
+            }
+            client!!.set("${plugin.systemName}:${key}", stringBuilder.toString())
             true
         } catch (ex: Exception) {
             ex.printStackTrace()
@@ -106,53 +157,122 @@ object RedisAPI {
     /**
      * Returns a String from redis server using the given Key.
      *
+     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A String from the redis server.
      * @throws IllegalStateException if the Redis client or the connection is null.
      * @throws NullPointerException if the data retorned is null.
      */
-    fun getString(key: String): String {
+    fun getString(plugin: IPluginInstance, key: String): String {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return client!!.get(key)
+        return client!!.get("${plugin.systemName}:${key}")
+    }
+
+    /**
+     * Returns a String List from redis server using the given Key.
+     *
+     * @param plugin the plugin instance owner of the data.
+     * @param key the key to search on redis server for a data.
+     * @return A String List from the redis server.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws NullPointerException if the data retorned is null.
+     */
+    fun getStringList(plugin: IPluginInstance, key: String): List<String> {
+        if (!isInitialized()) error("Cannot get any data from a null redis server")
+        if (!existis("${plugin.systemName}:${key}")) return emptyList()
+        return client!!.get("${plugin.systemName}:${key}").split(";")
     }
 
     /**
      * Returns a Int from redis server using the given Key.
      *
+     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Int from the redis server.
      * @throws IllegalStateException if the Redis client or the connection is null.
      * @throws NumberFormatException if the retorned data is null or is not a Int.
      */
-    fun getInt(key: String): Int {
+    fun getInt(plugin: IPluginInstance, key: String): Int {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return client!!.get(key).toInt()
+        return client!!.get("${plugin.systemName}:${key}").toInt()
     }
 
     /**
      * Returns a Double from redis server using the given Key.
      *
+     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Double from the redis server.
      * @throws IllegalStateException if the Redis client or the connection is null.
      * @throws NumberFormatException if the retorned data is null or is not a Double.
      */
-    fun getDouble(key: String): Double {
+    fun getDouble(plugin: IPluginInstance, key: String): Double {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return client!!.get(key).toDouble()
+        return client!!.get("${plugin.systemName}:${key}").toDouble()
     }
 
     /**
      * Returns a Long from redis server using the given Key.
      *
+     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Long from the redis server.
      * @throws IllegalStateException if the Redis client or the connection is null.
      * @throws NumberFormatException if the retorned data is null or is not a Long.
      */
-    fun getLong(key: String): Long {
+    fun getLong(plugin: IPluginInstance, key: String): Long {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return client!!.get(key).toLong()
+        return client!!.get("${plugin.systemName}:${key}").toLong()
+    }
+
+    /**
+     * Updates a counter value on Redis server.
+     *
+     * @param plugin the plugin instance owner of the data.
+     * @param key the key to search on redis server for a data.
+     * @return True if the counter update was completed. Otherwise, false.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     */
+    fun updateCounter(plugin: IPluginInstance, key: String, newCount: Int): Boolean {
+        if (!isInitialized()) error("Cannot get any data from a null redis server")
+        return try {
+            if (!existis("${plugin.systemName}:${key}")) {
+                client!!.set("${plugin.systemName}:${key}", newCount.toString())
+            } else {
+                val currentCount = getInt(plugin, "${plugin.systemName}:${key}")
+                client!!.set("${plugin.systemName}:${key}", currentCount.plus(newCount).toString())
+            }
+            true
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * Updates a counter value on Redis server.
+     * This fun can be useful if you don't have acess to the plugin instance owner of the data.
+     *
+     * @param plugin the plugin instance owner of the data.
+     * @param key the key to search on redis server for a data.
+     * @param countToSum the value (Int) to sum on Redis server.
+     * @return True if the counter update was completed. Otherwise, false.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     */
+    fun updateCounter(pluginName: String, key: String, countToSum: Int): Boolean {
+        if (!isInitialized()) error("Cannot get any data from a null redis server")
+        return try {
+            if (!existis("${pluginName}:${key}")) {
+                client!!.set("${pluginName}:${key}", countToSum.toString())
+            } else {
+                val currentCount = client!!.get("${pluginName}:${key}").toInt()
+                client!!.set("${pluginName}:${key}", currentCount.plus(countToSum).toString())
+            }
+            true
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            false
+        }
     }
 
     /**

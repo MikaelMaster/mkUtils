@@ -1,5 +1,6 @@
 package com.mikael.mkutils.bungee
 
+import com.mikael.mkutils.api.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
@@ -7,6 +8,7 @@ import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.bungee.listener.BungeeGeneralListener
 import net.eduard.api.lib.bungee.BungeeAPI
+import net.eduard.api.lib.command.Command
 import net.eduard.api.lib.config.Config
 import net.eduard.api.lib.database.DBManager
 import net.eduard.api.lib.database.HybridTypes
@@ -30,6 +32,7 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
         lateinit var instance: UtilsBungeeMain
     }
 
+    lateinit var mySqlUpdaterTimer: Thread
     lateinit var manager: UtilsManager
     lateinit var config: Config
 
@@ -40,8 +43,10 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
     override fun onEnable() {
         instance = this@UtilsBungeeMain
         val start = System.currentTimeMillis()
+        manager = resolvePut(UtilsManager()) // Needs to be here
 
         log("§eStarting loading...")
+        MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
         HybridTypes // Hybrid types loading
         store<RedisConnectionData>()
 
@@ -56,7 +61,6 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
         log("§eLoading extras...")
         reload()
 
-        manager = resolvePut(UtilsManager())
         DBManager.setDebug(false)
         manager.sqlManager = SQLManager(config["Database", DBManager::class.java])
         if (manager.sqlManager.dbManager.isEnabled) {
@@ -103,7 +107,7 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
 
         // MySQL queue updater timer
         if (utilsmanager.sqlManager.hasConnection()) {
-            thread {
+            mySqlUpdaterTimer = thread {
                 while (true) {
                     utilsmanager.sqlManager.runChanges()
                     Thread.sleep(1000)
@@ -114,8 +118,10 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
 
     override fun onDisable() {
         log("§eUnloading systems...")
+        mySqlUpdaterTimer.stop()
         utilsmanager.dbManager.closeConnection()
         RedisAPI.finishConnection()
+        MKPluginSystem.loadedMKPlugins.remove(this@UtilsBungeeMain)
         log("§cPlugin unloaded!")
     }
 
@@ -143,10 +149,11 @@ class UtilsBungeeMain : Plugin(), IPluginInstance {
     private fun reload() {
         Config.isDebug = false
         Copyable.setDebug(false)
+        Command.MESSAGE_PERMISSION = "§cYou don't have permission to use this command."
     }
 
     fun log(msg: String) {
-        ProxyServer.getInstance().console.sendMessage("§b[mkUtilsProxy] §f${msg}".toTextComponent())
+        ProxyServer.getInstance().console.sendMessage("§b[${systemName}] §f${msg}".toTextComponent())
     }
 
     override fun getPlugin(): Any {

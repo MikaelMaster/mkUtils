@@ -1,6 +1,6 @@
 plugins {
     java
-    kotlin("jvm") version "1.6.10"
+    kotlin("jvm") version "1.6.20"
     `maven-publish`
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
@@ -21,18 +21,12 @@ repositories {
 }
 
 dependencies {
-    // compileOnly(kotlin("stdlib"))
-    // compileOnly(kotlin("reflect"))
     compileOnly("org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT")
     compileOnly("net.md-5:bungeecord-api:1.16-R0.3")
-    // compileOnly("redis.clients:jedis:4.1.1")
-    // compileOnly("org.slf4j:slf4j-api:1.7.36")
-    // compileOnly("org.slf4j:slf4j-log4j12:1.7.36")
     compileOnly(files("libs/spigot-1.17.1.jar"))
-    // compileOnly(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
-    api("redis.clients:jedis:4.1.1")
+    api("redis.clients:jedis:4.2.2")
     api("org.slf4j:slf4j-api:1.7.36")
     api("org.slf4j:slf4j-log4j12:1.7.36")
     api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))

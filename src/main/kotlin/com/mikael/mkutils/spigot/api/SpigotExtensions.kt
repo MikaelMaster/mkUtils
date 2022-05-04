@@ -20,6 +20,7 @@ fun <T : ItemStack> T.notBreakable(): T {
     return this
 }
 
+@Deprecated("Does NOT work on new versions of minecraft that not use 1.8 protocol.")
 fun Location.smokeDenyBuild(player: Player) {
     Particle(ParticleType.LARGE_SMOKE, 1).create(player, this.clone().add(0.5, 1.0, 0.5))
 }
@@ -92,7 +93,7 @@ fun Player.giveItem(item: ItemStack): Item? {
     return null
 }
 
-@Deprecated("Does not work on java version 16 or higher.")
+@Deprecated("Does NOT work on java version 16 or higher.")
 inline fun Player.runCommand(thing: (() -> Unit)): Boolean {
     return try {
         thing.invoke()
@@ -105,7 +106,7 @@ inline fun Player.runCommand(thing: (() -> Unit)): Boolean {
     }
 }
 
-@Deprecated("Does not work on java version 16 or higher.")
+@Deprecated("Does NOT work on java version 16 or higher.")
 inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing: () -> (Unit)) {
     if (sendLoading) {
         this.sendMessage("§eLoading...")
