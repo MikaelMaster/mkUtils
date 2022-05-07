@@ -32,6 +32,7 @@ import org.bukkit.Location
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.text.SimpleDateFormat
 import kotlin.concurrent.thread
 
 class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
@@ -54,13 +55,12 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         val start = System.currentTimeMillis()
 
         log("§eStarting loading...")
-        MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
         HybridTypes // Hybrid types loading
         BukkitTypes.register() // Bukkit types loading
         store<RedisConnectionData>()
 
-        // Extra.FORMAT_DATE = SimpleDateFormat("MM/dd/yyyy")
-        // Extra.FORMAT_DATETIME = SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+        Extra.FORMAT_DATE = SimpleDateFormat("MM/dd/yyyy")
+        Extra.FORMAT_DATETIME = SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
 
         log("§eLoading directories...")
         storage()
@@ -121,7 +121,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         }
 
         val endTime = System.currentTimeMillis() - start
-        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)")
+        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
 
         syncDelay(20) {
             MineReflect.getVersion() // Prints the server version
@@ -146,6 +146,10 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         }
     }
 
+    override fun onLoad() {
+
+    }
+
     override fun onDisable() {
         if (config.getBoolean("CustomKick.isEnabled")) {
             log("§eDisconnecting players...")
@@ -157,7 +161,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         BungeeAPI.controller.unregister()
         utilsmanager.dbManager.closeConnection()
         RedisAPI.finishConnection()
-        log("§cPlugin unloaded!")
+        log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsMain)
     }
 
     private fun storage() {

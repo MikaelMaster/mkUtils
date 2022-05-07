@@ -18,8 +18,6 @@ fun String.toTextComponent(): TextComponent {
     return TextComponent(this)
 }
 
-
-
 fun Double.formatEN(): String {
     return NumberFormat.getNumberInstance(Locale.US).format(this)
 }
@@ -59,6 +57,6 @@ fun Long.formatDuration(): String {
             stringBuilder.append(seconds).append("s")
         }
         val formatedTime = stringBuilder.toString()
-        if (formatedTime.isEmpty()) "-1" else formatedTime
+        formatedTime.ifEmpty { "-1" }
     }
 }
