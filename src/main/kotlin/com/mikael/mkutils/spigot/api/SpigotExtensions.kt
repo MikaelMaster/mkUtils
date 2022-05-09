@@ -156,7 +156,7 @@ fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
  * @return A dropped Item?-- if the invetory is full.
  */
 fun Player.giveItem(item: ItemStack): Item? {
-    val slot = this.inventory.withIndex().firstOrNull { it.value == null }
+    val slot = this.inventory.contents.withIndex().firstOrNull { it.value == null }
         ?: return this.world.dropItemNaturally(this.eyeLocation, item)
     this.inventory.setItem(slot.index, item)
     return null

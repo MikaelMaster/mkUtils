@@ -253,7 +253,7 @@ object RedisAPI {
      * Updates a counter value on Redis server.
      * This fun can be useful if you don't have acess to the plugin instance owner of the data.
      *
-     * @param plugin the plugin instance owner of the data.
+     * @param pluginName the name of the plugin owner of the data. (Not in LowerCase)
      * @param key the key to search on redis server for a data.
      * @param countToSum the value (Int) to sum on Redis server.
      * @return True if the counter update was completed. Otherwise, false.
