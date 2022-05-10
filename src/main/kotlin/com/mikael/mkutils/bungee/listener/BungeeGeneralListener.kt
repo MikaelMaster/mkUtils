@@ -6,7 +6,7 @@ import com.mikael.mkutils.bungee.UtilsBungeeMain
 import net.md_5.bungee.api.connection.ProxiedPlayer
 import net.md_5.bungee.api.event.ChatEvent
 import net.md_5.bungee.api.event.PlayerDisconnectEvent
-import net.md_5.bungee.api.event.ServerConnectEvent
+import net.md_5.bungee.api.event.PostLoginEvent
 import net.md_5.bungee.api.event.ServerConnectedEvent
 import net.md_5.bungee.api.plugin.Listener
 import net.md_5.bungee.event.EventHandler
@@ -22,7 +22,7 @@ class BungeeGeneralListener : Listener {
     }
 
     @EventHandler
-    fun onPlayerJoin(e: ServerConnectEvent) {
+    fun onPlayerJoin(e: PostLoginEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
         RedisAPI.updateCounter("mkUtils", "mkbungeeapi:playercount", 1)
         RedisAPI.client!!.set("mkutils:bungee:players:${e.player.name.lowercase()}", "null")
