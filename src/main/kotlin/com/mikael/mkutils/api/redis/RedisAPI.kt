@@ -137,7 +137,7 @@ object RedisAPI {
         return try {
             if (useExistingData) {
                 if (existis("${plugin.systemName}:${key}")) {
-                    for (string in getStringList(plugin, "${plugin.systemName}:${key}")) {
+                    for (string in getStringList(plugin, key)) {
                         stringList.add(string)
                     }
                 }
@@ -147,6 +147,43 @@ object RedisAPI {
                 stringBuilder.append("${string};")
             }
             client!!.set("${plugin.systemName}:${key}", stringBuilder.toString())
+            true
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * Inserts a String List into the redis server using the given `key` and `stringList`.
+     *
+     * @param pluginName the plugin name owner of the data.
+     * @param key the key to push the value.
+     * @param stringList the String List to be pushed into redis server.
+     * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
+     * @return True if the insert was completed. Otherwise, false.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     */
+    fun insertStringList(
+        pluginName: String,
+        key: String,
+        stringList: MutableList<String>,
+        useExistingData: Boolean = true
+    ): Boolean {
+        if (!isInitialized()) error("Cannot insert any data to a null redis server")
+        return try {
+            if (useExistingData) {
+                if (existis("${pluginName}:${key}")) {
+                    for (string in getStringList(pluginName, key)) {
+                        stringList.add(string)
+                    }
+                }
+            }
+            val stringBuilder = StringBuilder()
+            for (string in stringList) {
+                stringBuilder.append("${string};")
+            }
+            client!!.set("${pluginName}:${key}", stringBuilder.toString())
             true
         } catch (ex: Exception) {
             ex.printStackTrace()
@@ -181,6 +218,21 @@ object RedisAPI {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
         if (!existis("${plugin.systemName}:${key}")) return emptyList()
         return client!!.get("${plugin.systemName}:${key}").split(";")
+    }
+
+    /**
+     * Returns a String List from redis server using the given Key.
+     *
+     * @param pluginName the plugin name owner of the data.
+     * @param key the key to search on redis server for a data.
+     * @return A String List from the redis server.
+     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws NullPointerException if the data retorned is null.
+     */
+    fun getStringList(pluginName: String, key: String): List<String> {
+        if (!isInitialized()) error("Cannot get any data from a null redis server")
+        if (!existis("${pluginName}:${key}")) return emptyList()
+        return client!!.get("${pluginName}:${key}").split(";")
     }
 
     /**

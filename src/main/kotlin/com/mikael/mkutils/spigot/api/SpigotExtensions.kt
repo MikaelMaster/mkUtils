@@ -8,11 +8,38 @@ import net.md_5.bungee.api.ChatMessageType
 import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.World
+import org.bukkit.block.Block
+import org.bukkit.block.data.Openable
+import org.bukkit.block.data.Waterlogged
 import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.Creature
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Item
+import org.bukkit.entity.Monster
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+
+/**
+ * @return True if this entity is a peceful entity. Otherwise, false.
+ */
+val Entity.isPeaceful: Boolean
+    get() {
+        if (this is Creature) {
+            return this !is Monster
+        }
+        return true
+    }
+
+/**
+ * @return True if the player's inventory have free slots. Otherwise, false.
+ */
+val Player.hasFreeSlots: Boolean get() = this.freeSlots > 0
+
+/**
+ * @return The amount of free slots in this player's inventory.
+ */
+val Player.freeSlots: Int get() = 36 - this.inventory.contents.size
 
 /**
  * @return True if the player has the needed amount of the needed ItemStack on his inventory.
@@ -38,13 +65,58 @@ fun Inventory.hasAmountOfItem(needed: ItemStack, neededAmount: Int): Boolean {
 }
 
 /**
+ * Set if a block is waterlogged or not.
+ * If this block doesn't support be waterlogged, nothing will happen.
+ *
+ * @param isWatterlogged if this block is to be waterlogged or not.
+ * @return The new waterlogged (or not) [Block].
+ */
+fun Block.waterlogged(isWatterlogged: Boolean): Block {
+    val blockData = this.blockData
+    if (blockData !is Waterlogged) return this
+    blockData.isWaterlogged = isWatterlogged
+    this.blockData = blockData
+    return this
+}
+
+/**
+ * Set if a block is opened or not.
+ * If this block doesn't support be opned, nothing will happen.
+ * This is to be used with trapdors, for example.
+ *
+ * @param isOpened if this block is opened or not.
+ * @return The new opened (or not) [Block].
+ */
+fun Block.opened(isOpened: Boolean): Block {
+    val blockData = this.blockData
+    if (blockData !is Openable) return this
+    blockData.isOpen = isOpened
+    this.blockData = blockData
+    return this
+}
+
+/**
+ * Sets a Custom Model Data to a ItemStack.
+ *
+ * @param data the Int or null to be set Custom Model Data.
+ * @return The new [ItemStack] with the set Custom Model Data.
+ */
+fun <T : ItemStack> T.customModelData(data: Int?): T {
+    val meta = itemMeta!!
+    meta.setCustomModelData(data)
+    itemMeta = meta
+    return this
+}
+
+/**
  * Make an ItemStack and similars not breakable.
  *
- * @return The new not breakable ItemStack.
+ * @param isUnbreakable if the item will be or not unbreakable. By default, True.
+ * @return The new not breakable [ItemStack].
  */
-fun <T : ItemStack> T.notBreakable(): T {
+fun <T : ItemStack> T.notBreakable(isUnbreakable: Boolean = true): T {
     val meta = itemMeta!!
-    meta.isUnbreakable = true
+    meta.isUnbreakable = isUnbreakable
     itemMeta = meta
     return this
 }
@@ -61,28 +133,31 @@ fun Location.smokeDenyBuild(player: Player) {
 }
 
 /**
+ * Extra of see also: (loc: Location, vararg lines: String?): ArmorStand
+ *
  * @see World.newHologram
  */
-fun Location.newHologram(line: String): ArmorStand {
+fun Location.newHologram(line: String?): ArmorStand {
     if (this.world == null) error("Cannot spawn a hologram on a unloaded world")
     return this.world!!.newHologram(this, line)
 }
 
 /**
- * Extra of see also: (loc: Location, toDown: Boolean, vararg lines: String): List<ArmorStand>
+ * Extra of see also: (loc: Location, toDown: Boolean, vararg lines: String?): List<ArmorStand>
+ *
  * @see World.newHologram
  */
-fun Location.newHologram(toDown: Boolean, vararg lines: String): List<ArmorStand> {
-    if (this.world == null) error("Cannot spawn a hologram on a unloaded world")
+fun Location.newHologram(toDown: Boolean, vararg lines: String?): List<ArmorStand> {
+    if (this.world == null) error("Cannot spawn a hologram in a unloaded world")
     return this.world!!.newHologram(this, toDown, *lines)
 }
 
 /**
  * Spawn a new hologram with just one line.
  *
- * @return The spawned ArmorStand that compose this hologram.
+ * @return The spawned [ArmorStand] that compose this hologram.
  */
-fun World.newHologram(loc: Location, line: String): ArmorStand {
+fun World.newHologram(loc: Location, line: String?): ArmorStand {
     if (!loc.chunk.isLoaded) {
         loc.chunk.load(true)
     }
@@ -91,7 +166,7 @@ fun World.newHologram(loc: Location, line: String): ArmorStand {
     holo.isVisible = false
     holo.isSmall = true
     holo.isMarker = false
-    if (line != "null") {
+    if (line != null) {
         holo.isCustomNameVisible = true
         holo.customName = line
     } else {
@@ -103,9 +178,9 @@ fun World.newHologram(loc: Location, line: String): ArmorStand {
 /**
  * Spawn a new hologram with multiple lines.
  *
- * @return A list of all spawned ArmorStands that compose the hologram.
+ * @return A [List] of all spawned [ArmorStand] that compose the hologram.
  */
-fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String): List<ArmorStand> {
+fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): List<ArmorStand> {
     val holos = mutableListOf<ArmorStand>()
     var location: Location = loc
     for (line in lines) {
@@ -152,14 +227,32 @@ fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
  * Gives an item to a player if there is an available slot on his inventory.
  * If there is no empty slot, the ItemStack will be dropped on the world, using the player's eye location.
  *
- * @param item the ItemStack to be add on player's inventory. (It will be dropped if the inventory is full)
- * @return A dropped Item?-- if the invetory is full.
+ * @param item the ItemStack to be added on player's inventory. (It will be dropped if the inventory is full)
+ * @return A dropped [Item] if the invetory is full. Otherwise, false.
  */
 fun Player.giveItem(item: ItemStack): Item? {
     val slot = this.inventory.contents.withIndex().firstOrNull { it.value == null }
         ?: return this.world.dropItemNaturally(this.eyeLocation, item)
     this.inventory.setItem(slot.index, item)
     return null
+}
+
+/**
+ * This function isn't done. DON'T use it.
+ *
+ * @param thing the block code to run using try catch and the load animation.
+ */
+inline fun Player.loading(crossinline thing: (() -> Unit)) {
+    val runnable = UtilsMain.instance.asyncTimer(1, 1) {
+        // Loading animation
+    }
+    try {
+        thing.invoke()
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+    }
+    runnable.cancel()
+    this.clearActionBar()
 }
 
 /**
@@ -227,6 +320,7 @@ fun Player.clearActionBar() {
 fun Player.actionBar(msg: String) {
     this.spigot().sendMessage(ChatMessageType.ACTION_BAR, msg.toTextComponent())
 }
+
 
 /**
  * Send a title and subtitle to the player.

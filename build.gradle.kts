@@ -26,10 +26,11 @@ dependencies {
     compileOnly(files("libs/spigot-1.17.1.jar"))
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
-    api("redis.clients:jedis:4.2.2")
+    api("redis.clients:jedis:4.2.3")
     api("org.slf4j:slf4j-api:1.7.36")
     api("org.slf4j:slf4j-log4j12:1.7.36")
     api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))
+    api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\MiniaturePets_v2.7.1-stable.jar\\"))
 }
 
 tasks {

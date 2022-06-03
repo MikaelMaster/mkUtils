@@ -2,10 +2,12 @@ package com.mikael.mkutils.spigot
 
 import com.mikael.mkutils.api.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
+import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.LocationStorable
+import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask
 import net.eduard.api.core.BukkitReplacers
@@ -120,6 +122,9 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
             log("§cThe Redis is not active on the config file. Some plugins and MK systems may not work correctly.")
         }
 
+        log("§eLoading systems...")
+        GeneralListener().registerListener(this)
+
         val endTime = System.currentTimeMillis() - start
         log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
 
@@ -144,10 +149,6 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
                 }
             }
         }
-    }
-
-    override fun onLoad() {
-
     }
 
     override fun onDisable() {
@@ -175,11 +176,14 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
     }
 
     private fun replacers() {
+        Mine.addReplacer("mkutils_players") {
+            Bukkit.getOnlinePlayers().size.formatEN()
+        }
         Mine.addReplacer("mkbungeeapi_players") {
             if (!config.getBoolean("BungeeAPI.isEnabled")) {
                 -1
             } else {
-                RedisAPI.client!!.get("mkUtils:mkbungeeapi:playercount").toInt()
+                RedisAPI.client!!.get("mkUtils:mkbungeeapi:playercount").toInt().formatEN()
             }
         }
     }
