@@ -4,3 +4,12 @@ api-version: 1.17
 load: POSTWORLD
 author: Mikael
 main: com.mikael.mkutils.spigot.UtilsMain
+
+commands:
+  customcrafts:
+    aliases:
+      - customcraftrecipes
+      - customrecipes
+    description: Show all server custom crafts.
+    usage: /customcrafts
+    permission: mkutils.cmd.customcrafts

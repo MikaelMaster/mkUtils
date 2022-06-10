@@ -1,12 +1,13 @@
 package com.mikael.mkutils.spigot
 
-import com.mikael.mkutils.api.MKPluginSystem
+import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
-import com.mikael.mkutils.spigot.api.LocationStorable
+import com.mikael.mkutils.spigot.api.craftapi.CraftAPI
+import com.mikael.mkutils.spigot.api.storable.LocationStorable
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask
@@ -162,6 +163,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         BungeeAPI.controller.unregister()
         utilsmanager.dbManager.closeConnection()
         RedisAPI.finishConnection()
+        CraftAPI.onDisable() // Disable CraftAPI
         log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsMain)
     }
 
@@ -201,6 +203,7 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
         DisplayBoard.nameLimit = 40
         DisplayBoard.prefixLimit = 16
         DisplayBoard.suffixLimit = 16
+        CraftAPI.onEnable() // Enable CraftAPI
     }
 
     private fun tasks() {
@@ -278,6 +281,12 @@ class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
             "CustomKick.customKickMessage",
             "§cRestarting, we'll back soon!",
             "Kick message sent to players on server shutdown."
+        )
+        config.add(
+            "CustomCrafts.customCraftsMenuAndCommand",
+            true,
+            "Enable/disable the command and menus to",
+            "show mkUtils registered custom item crafts."
         )
         config.saveConfig()
     }

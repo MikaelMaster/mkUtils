@@ -1,4 +1,4 @@
-package com.mikael.mkutils.api
+package com.mikael.mkutils.spigot.api.util
 
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.plugin.Plugin
 import org.bukkit.util.Vector
 import java.util.EnumMap
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 
@@ -80,7 +81,7 @@ object LocationUtil {
     }
 
     fun getOppositeYaw(face: BlockFace, originalYaw: Float): Float {
-        if (between(originalYaw, -90f, 0f) && face == BlockFace.NORTH) return -180 + Math.abs(originalYaw)
+        if (between(originalYaw, -90f, 0f) && face == BlockFace.NORTH) return -180 + abs(originalYaw)
         var yaw = normalizeYaw(originalYaw)
         var yawBlock = normalizeYaw(faceToYaw(face).toFloat())
         if (yawBlock == 0f) yawBlock = 360f

@@ -1,4 +1,4 @@
-package com.mikael.mkutils.spigot.api
+package com.mikael.mkutils.spigot.api.storable
 
 import net.eduard.api.lib.storage.Storable
 import org.bukkit.Bukkit

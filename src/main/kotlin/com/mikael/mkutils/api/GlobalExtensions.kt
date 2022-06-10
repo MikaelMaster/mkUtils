@@ -18,6 +18,28 @@ fun String.toTextComponent(): TextComponent {
     return TextComponent(this)
 }
 
+fun Int.formatSeccondWorld(): String {
+    return if (this != 1) return "seconds" else "second"
+}
+
+fun Boolean.formatEnabledDisabled(colored: Boolean = true): String {
+    val text = if (colored) {
+        if (this) "§aEnabled" else "§cDisabled"
+    } else {
+        if (this) "Enabled" else "Disabled"
+    }
+    return text
+}
+
+fun Boolean.formatYesNo(colored: Boolean = true): String {
+    val text = if (colored) {
+        if (this) "§aYes" else "§cNo"
+    } else {
+        if (this) "Yes" else "No"
+    }
+    return text
+}
+
 fun Double.formatEN(): String {
     return NumberFormat.getNumberInstance(Locale.US).format(this)
 }

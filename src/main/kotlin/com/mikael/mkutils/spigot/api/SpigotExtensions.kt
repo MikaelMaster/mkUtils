@@ -2,8 +2,12 @@ package com.mikael.mkutils.spigot.api
 
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
+import com.mikael.mkutils.spigot.listener.GeneralListener
+import net.eduard.api.lib.game.ItemBuilder
 import net.eduard.api.lib.game.Particle
 import net.eduard.api.lib.game.ParticleType
+import net.eduard.api.lib.kotlin.mineLore
+import net.eduard.api.lib.kotlin.mineName
 import net.md_5.bungee.api.ChatMessageType
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -19,6 +23,19 @@ import org.bukkit.entity.Monster
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+
+fun ItemStack.toItemBuilder(): ItemBuilder {
+    return ItemBuilder(this)
+}
+
+
+fun Entity.setInvincible(isInvincible: Boolean) {
+    if (isInvincible) {
+        GeneralListener.instance.invincibleEntities.add(this)
+    } else {
+        GeneralListener.instance.invincibleEntities.remove(this)
+    }
+}
 
 /**
  * @return True if this entity is a peceful entity. Otherwise, false.

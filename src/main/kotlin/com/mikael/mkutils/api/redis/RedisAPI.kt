@@ -7,11 +7,11 @@ import redis.clients.jedis.Jedis
 object RedisAPI {
 
     /**
-     * RedisAPI v1.2 (Using Jedis v4.1.1)
+     * RedisAPI v1.3 (Using Jedis v4.2.3)
      *
      * Remember that in the mkUtils config you can enable this API automatically by setting Redis 'isEnabled' to true.
      * This API is not yet supported to be activated and used in different plugins at the same time with different Clients.
-     * You should always create a single Redis Client and use it in all your plugins.
+     * You should always create a single Redis Client ([createClient]), connect it ([connectClient]), and use it in all your plugins.
      *
      * @author Mikael
      * @see RedisConnectionData
@@ -24,12 +24,12 @@ object RedisAPI {
     var usedRedisConnectionData: RedisConnectionData? = null
 
     /**
-     * Creates a new redis client (Jedis) using the data provided by RedisConnectionData.
-     * After creation sets the 'client' variable to the new created client and 'usedRedisConnectionData' to the used RedisConnectionData.
+     * Creates a new Redis client (Jedis) using the data provided by [RedisConnectionData].
+     * After creation sets the [client] variable to the new created client and [usedRedisConnectionData] to the provided [RedisConnectionData].
      *
-     * @param connectionData A RedisConnectionData to create the Redis Client.
-     * @return A redis client (Jedis).
-     * @throws IllegalStateException if the 'isEnabled' of the given RedisConnectionData is false.
+     * @param connectionData A [RedisConnectionData] to create the Redis Client.
+     * @return A Redis Client ([Jedis]).
+     * @throws IllegalStateException if the '[RedisConnectionData.isEnabled]' of the given [RedisConnectionData] is false.
      * @see connectClient
      */
     fun createClient(connectionData: RedisConnectionData): Jedis {
@@ -41,12 +41,12 @@ object RedisAPI {
     }
 
     /**
-     * Connects the client (Jedis) if it is not already connected.
+     * Connects the Redis [client] (Jedis) if it is not already connected.
      * If the client is already connected, it will just return the existing connection.
      *
      * @param force if is to force a new connection, ignoring if the client is already connected.
-     * @return An existing Jedis connection.
-     * @throws IllegalStateException if the RedisAPI client is null.
+     * @return An existing Jedis [Connection].
+     * @throws IllegalStateException if the [RedisAPI.client] is null.
      * @see createClient
      */
     fun connectClient(force: Boolean = false): Connection {
@@ -66,7 +66,7 @@ object RedisAPI {
     }
 
     /**
-     * Closes the existing connection to the redis server, and then sets the variable 'clientConnection', 'client' and 'usedRedisConnectionData' to null.
+     * Closes the existing connection to the Redis server, and then sets the variable [clientConnection], [client] and [usedRedisConnectionData] to null.
      */
     fun finishConnection() {
         clientConnection?.close()
@@ -76,7 +76,7 @@ object RedisAPI {
     }
 
     /**
-     * Checks if the redis client (Jedis) is created and connected.
+     * Checks if the Redis [client] (Jedis) is created and connected.
      *
      * @return True if the redis client is created and connected. Otherwise, false.
      */
@@ -86,11 +86,11 @@ object RedisAPI {
     }
 
     /**
-     * Verify if a data existis on the redis server.
+     * Verify if a data existis on the Redis server.
      *
      * @param key the key to verify if the value existis.
      * @return True if the data existis. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun existis(key: String): Boolean {
         if (!isInitialized()) error("Cannot insert any data to a null redis server")
@@ -104,7 +104,7 @@ object RedisAPI {
      * @param key the key to push the value.
      * @param value the value to be pushed into redis server. The value will always be converted to string.
      * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun insert(plugin: IPluginInstance, key: String, value: Any): Boolean {
         if (!isInitialized()) error("Cannot insert any data to a null redis server")
@@ -125,7 +125,7 @@ object RedisAPI {
      * @param stringList the String List to be pushed into redis server.
      * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
      * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun insertStringList(
         plugin: IPluginInstance,
@@ -162,7 +162,7 @@ object RedisAPI {
      * @param stringList the String List to be pushed into redis server.
      * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
      * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun insertStringList(
         pluginName: String,
@@ -197,7 +197,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A String from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NullPointerException if the data retorned is null.
      */
     fun getString(plugin: IPluginInstance, key: String): String {
@@ -211,7 +211,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A String List from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NullPointerException if the data retorned is null.
      */
     fun getStringList(plugin: IPluginInstance, key: String): List<String> {
@@ -226,7 +226,7 @@ object RedisAPI {
      * @param pluginName the plugin name owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A String List from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NullPointerException if the data retorned is null.
      */
     fun getStringList(pluginName: String, key: String): List<String> {
@@ -241,7 +241,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Int from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NumberFormatException if the retorned data is null or is not a Int.
      */
     fun getInt(plugin: IPluginInstance, key: String): Int {
@@ -255,7 +255,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Double from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NumberFormatException if the retorned data is null or is not a Double.
      */
     fun getDouble(plugin: IPluginInstance, key: String): Double {
@@ -269,7 +269,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return A Long from the redis server.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      * @throws NumberFormatException if the retorned data is null or is not a Long.
      */
     fun getLong(plugin: IPluginInstance, key: String): Long {
@@ -283,7 +283,7 @@ object RedisAPI {
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
      * @return True if the counter update was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun updateCounter(plugin: IPluginInstance, key: String, newCount: Int): Boolean {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
@@ -309,7 +309,7 @@ object RedisAPI {
      * @param key the key to search on redis server for a data.
      * @param countToSum the value (Int) to sum on Redis server.
      * @return True if the counter update was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun updateCounter(pluginName: String, key: String, countToSum: Int): Boolean {
         if (!isInitialized()) error("Cannot get any data from a null redis server")
@@ -331,7 +331,7 @@ object RedisAPI {
      * Sends a ping to Redis server.
      *
      * @return True if the ping is answered. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun testPing(): Boolean {
         if (!isInitialized()) error("Cannot send ping to a null redis server")
@@ -349,7 +349,7 @@ object RedisAPI {
      * @param channel the redis channel name to send the event.
      * @param message the message that will be sent with the event.
      * @return True if the event sent was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis client or the connection is null.
+     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
     fun sendEvent(channel: String, message: String): Boolean {
         if (!isInitialized()) error("Cannot send an event message to a null redis server")

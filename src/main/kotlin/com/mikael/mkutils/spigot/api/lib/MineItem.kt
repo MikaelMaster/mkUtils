@@ -6,6 +6,7 @@ import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import java.util.*
+import net.eduard.api.lib.game.ItemBuilder
 
 class MineItem(material: Material = Material.STONE) : ItemStack(material) {
 
@@ -13,7 +14,7 @@ class MineItem(material: Material = Material.STONE) : ItemStack(material) {
      * MineItem util class v1.0b
      *
      * This class is NOT finished to use.
-     * Plase use ItemStack instead.
+     * Plase use ItemStack or EduardAPI [ItemBuilder] instead.
      *
      * @author Mikael
      * @see ItemStack

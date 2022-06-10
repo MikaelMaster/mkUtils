@@ -1,6 +1,6 @@
 plugins {
     java
-    kotlin("jvm") version "1.6.20"
+    kotlin("jvm") version "1.7.0"
     `maven-publish`
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
@@ -30,7 +30,6 @@ dependencies {
     api("org.slf4j:slf4j-api:1.7.36")
     api("org.slf4j:slf4j-log4j12:1.7.36")
     api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))
-    api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\MiniaturePets_v2.7.1-stable.jar\\"))
 }
 
 tasks {

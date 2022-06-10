@@ -1,6 +1,6 @@
 package com.mikael.mkutils.bungee
 
-import com.mikael.mkutils.api.MKPluginSystem
+import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
