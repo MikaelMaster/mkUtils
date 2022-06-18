@@ -98,7 +98,7 @@ object RedisAPI {
     }
 
     /**
-     * Inserts a data into redis server using the given Key and Value.
+     * Inserts a data into redis server using the given [key] and [value].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to push the value.
@@ -118,7 +118,7 @@ object RedisAPI {
     }
 
     /**
-     * Inserts a String List into the redis server using the given `key` and `stringList`.
+     * Inserts a String List into the redis server using the given [key] and [stringList].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to push the value.
@@ -155,7 +155,7 @@ object RedisAPI {
     }
 
     /**
-     * Inserts a String List into the redis server using the given `key` and `stringList`.
+     * Inserts a String List into the redis server using the given [key] and [stringList].
      *
      * @param pluginName the plugin name owner of the data.
      * @param key the key to push the value.
@@ -192,7 +192,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a String from redis server using the given Key.
+     * Returns a String from redis server using the given [key].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
@@ -206,7 +206,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a String List from redis server using the given Key.
+     * Returns a String List from redis server using the given [key].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
@@ -221,7 +221,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a String List from redis server using the given Key.
+     * Returns a String List from redis server using the given [key].
      *
      * @param pluginName the plugin name owner of the data.
      * @param key the key to search on redis server for a data.
@@ -236,7 +236,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a Int from redis server using the given Key.
+     * Returns a Int from redis server using the given [key].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
@@ -250,7 +250,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a Double from redis server using the given Key.
+     * Returns a Double from redis server using the given [key].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
@@ -264,7 +264,7 @@ object RedisAPI {
     }
 
     /**
-     * Returns a Long from redis server using the given Key.
+     * Returns a Long from redis server using the given [key].
      *
      * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.

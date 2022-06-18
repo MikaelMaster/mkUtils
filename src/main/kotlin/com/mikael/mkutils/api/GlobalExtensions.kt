@@ -1,5 +1,6 @@
 package com.mikael.mkutils.api
 
+import com.mikael.mkutils.api.mkplugin.MKPluginData
 import com.mikael.mkutils.api.redis.RedisAPI
 import net.eduard.api.lib.kotlin.resolve
 import net.md_5.bungee.api.chat.TextComponent
@@ -7,17 +8,60 @@ import java.text.NumberFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+/**
+ * [UtilsManager] class 'shortcut.'
+ */
 val utilsmanager = resolve<UtilsManager>()
 
 /**
+ * Key to sync MySql async and sync updates.
+ * DO NOT USE IT BY YOURSELF IF YOU DO NOT KNOW WHAT YOU ARE DOING.
+ * Instead, use [syncMysql] and give the block code that will be executed using this sync key.
+ *
+ * @see syncMysql
+ */
+val syncMysqUpdatesKey = Any()
+
+/**
+ * Use it to sync updates in mysql that interact with a local list/map to save a [MKPluginData].
+ * You can call this function in a main or async thread, everything will be sync as the same.
+ *
+ * @param thing the block code to execute using the [syncMysqUpdatesKey].
+ * @return True if the block code has been executed with no error. Otherwise, false.
+ */
+fun syncMysql(thing: (() -> Unit)): Boolean {
+    synchronized(syncMysqUpdatesKey) {
+        return try {
+            thing.invoke()
+            true
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            false
+        }
+    }
+}
+
+/**
+ * [RedisAPI] class shortcut.
+ *
  * @see RedisAPI
  */
 val Redis = RedisAPI
 
+/**
+ * Transform a [String] into a [TextComponent].
+ *
+ * @return [TextComponent] with the given [String].
+ */
 fun String.toTextComponent(): TextComponent {
     return TextComponent(this)
 }
 
+/**
+ * Will return a [String] with "seconds" if the given [Int] is different from 1. Otherwise, it will return "second".
+ *
+ * @return [String] with "seconds" or "second".
+ */
 fun Int.formatSeccondWorld(): String {
     return if (this != 1) return "seconds" else "second"
 }
@@ -38,6 +82,10 @@ fun Boolean.formatYesNo(colored: Boolean = true): String {
         if (this) "Yes" else "No"
     }
     return text
+}
+
+fun Int.isMultOf(multBy: Int): Boolean {
+    return this % multBy == 0
 }
 
 fun Double.formatEN(): String {

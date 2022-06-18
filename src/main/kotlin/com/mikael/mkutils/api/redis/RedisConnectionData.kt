@@ -3,7 +3,7 @@ package com.mikael.mkutils.api.redis
 class RedisConnectionData(
 
     /**
-     * Data to create a redis client (Jedis) using the RedisAPI.
+     * Data to create a redis client (Jedis) using the [RedisAPI].
      *
      * @see RedisAPI
      */

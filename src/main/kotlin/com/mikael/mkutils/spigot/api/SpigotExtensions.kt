@@ -6,8 +6,6 @@ import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.eduard.api.lib.game.Particle
 import net.eduard.api.lib.game.ParticleType
-import net.eduard.api.lib.kotlin.mineLore
-import net.eduard.api.lib.kotlin.mineName
 import net.md_5.bungee.api.ChatMessageType
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -24,17 +22,31 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
+fun <T : ItemStack> T.addLore(vararg lines: String): T {
+    val meta = itemMeta!!
+    if (meta.lore == null) meta.lore = listOf()
+    val newLore = mutableListOf<String>()
+    for (line in meta.lore!!) {
+        newLore.add(line)
+    }
+    for (newLine in lines) {
+        newLore.add(newLine)
+    }
+    itemMeta = meta
+    return this
+}
+
 fun ItemStack.toItemBuilder(): ItemBuilder {
     return ItemBuilder(this)
 }
 
-
-fun Entity.setInvincible(isInvincible: Boolean) {
+fun Entity.setInvincible(isInvincible: Boolean): Entity {
     if (isInvincible) {
         GeneralListener.instance.invincibleEntities.add(this)
     } else {
         GeneralListener.instance.invincibleEntities.remove(this)
     }
+    return this
 }
 
 /**
@@ -255,21 +267,72 @@ fun Player.giveItem(item: ItemStack): Item? {
 }
 
 /**
- * This function isn't done. DON'T use it.
+ * Runs a loading animation to the player using the main thread (sync), while execute the given [thing] using async.
  *
+ * @param loadingMsg the message to show with the loading animation. By default, the msg is 'Loading...' and the color is yellow (§e).
+ * @param small if True, the loading animation will NOT show  the [loadingMsg], and will play the animation on the actionBar. If false, the animation will be played using titles.
  * @param thing the block code to run using try catch and the load animation.
  */
-inline fun Player.loading(crossinline thing: (() -> Unit)) {
-    val runnable = UtilsMain.instance.asyncTimer(1, 1) {
-        // Loading animation
+inline fun Player.asyncLoading(
+    loadingMsg: String? = "§eLoading...",
+    small: Boolean = true,
+    crossinline thing: (() -> Unit)
+) {
+    var step = 0
+    val runnable = UtilsMain.instance.syncTimer(0, 2) {
+        if (!small) {
+            when (step) {
+                0 -> {
+                    this.title("§a∎§7∎∎∎∎", "§e${loadingMsg}", 0, 10, 0)
+                }
+                1 -> {
+                    this.title("§7∎§a∎§7∎∎∎", "§e${loadingMsg}", 0, 10, 0)
+                }
+                2 -> {
+                    this.title("§7∎∎§a∎§7∎∎", "§e${loadingMsg}", 0, 10, 0)
+                }
+                3 -> {
+                    this.title("§7∎∎∎∎§a∎", "§e${loadingMsg}", 0, 10, 0)
+                }
+            }
+        } else {
+            when (step) {
+                0 -> {
+                    this.actionBar("§a∎§7∎∎∎∎")
+                }
+                1 -> {
+                    this.actionBar("§7∎§a∎§7∎∎∎")
+                }
+                2 -> {
+                    this.actionBar("§7∎∎§a∎§7∎∎")
+                }
+                3 -> {
+                    this.actionBar("§7∎∎∎§a∎§7∎")
+                }
+                4 -> {
+                    this.actionBar("§7∎∎∎∎§a∎")
+                }
+            }
+        }
+        if (step == 3) step = 0 else step++
     }
-    try {
-        thing.invoke()
-    } catch (ex: Exception) {
-        ex.printStackTrace()
+    UtilsMain.instance.asyncTask {
+        try {
+            thing.invoke()
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            this.soundNo()
+            this.sendMessage("§cAn internal error occurred while executing something to you.")
+        }
+        UtilsMain.instance.syncTask {
+            runnable.cancel()
+            if (!small) {
+                this.title("§a§l∎∎∎∎∎", "§7${loadingMsg} §a§lCompleted.", 5, 20, 5)
+            } else {
+                this.clearActionBar()
+            }
+        }
     }
-    runnable.cancel()
-    this.clearActionBar()
 }
 
 /**
@@ -320,6 +383,13 @@ fun Player.clearAllInventory(resetHoldSlot: Boolean = true) {
     if (resetHoldSlot) this.inventory.heldItemSlot = 0
     this.inventory.clear()
     this.inventory.setArmorContents(arrayOf()) // Clear armors
+}
+
+/**
+ * Clear the player's title and subtitle.
+ */
+fun Player.clearTitle() {
+    this.resetTitle()
 }
 
 /**

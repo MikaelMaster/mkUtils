@@ -1,7 +1,7 @@
 package com.mikael.mkutils.spigot.api.craftapi
 
 import com.mikael.mkutils.spigot.UtilsMain
-import net.eduard.api.lib.game.ItemBuilder
+import com.mikael.mkutils.spigot.api.lib.MineItem
 import net.eduard.api.lib.plugin.IPluginInstance
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.RecipeChoice.ExactChoice
@@ -14,7 +14,7 @@ object CraftAPI {
     fun registerCustomRecipe(plugin: IPluginInstance, recipe: CraftRecipe): Boolean {
         val craft = ShapedRecipe(
             NamespacedKey.fromString("${plugin.systemName.lowercase()}:${recipe.keyName.lowercase()}")!!,
-            ItemBuilder(recipe.result)
+            MineItem(recipe.result)
         )
         if (recipe.type == CraftRecipeType.PLAYER_CRAFT) {
             if (recipe.recipeItems.size != 4) error("Cannot register a custom recipe using PLAYER_CRAFT type with recipe items size different of 4")

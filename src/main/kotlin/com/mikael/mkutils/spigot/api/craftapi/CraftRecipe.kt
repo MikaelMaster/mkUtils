@@ -23,7 +23,7 @@ class CraftRecipe(
      * Return all the [ItemStack]s needed to craft the item using the vars order ([slot1Item], [slot2Item], ...).
      *
      * If the [type] is [CraftRecipeType.PLAYER_CRAFT] the size of the retorned list
-     * will always be 4, if the [CraftRecipeType.CRAFTING_TABLE] is used, the size will be 9.
+     * will always be 4, if the [CraftRecipeType.CRAFTING_TABLE] is used, the size will be always 9.
      */
     val recipeItems: List<ItemStack?>
         get() {
