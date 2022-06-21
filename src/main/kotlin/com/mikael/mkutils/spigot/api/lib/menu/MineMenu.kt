@@ -7,7 +7,6 @@ import com.mikael.mkutils.spigot.api.lib.MineListener
 import com.mikael.mkutils.spigot.api.player
 import com.mikael.mkutils.spigot.api.soundClick
 import com.mikael.mkutils.spigot.listener.GeneralListener
-// import net.eduard.api.lib.modules.Mine
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -20,7 +19,7 @@ import org.bukkit.inventory.Inventory
 
 open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
-    var isAutoUpdate = true // Auto update all opened menus every 3s
+    var isAutoUpdate = true // Auto update all opened menus every 3s (finish it)
 
     // Auto Align options - Start
     var isAutoAlignItems = false
@@ -168,7 +167,6 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
             var buttonId = 1
 
             for (button in buttonsToRegister.filter { !it.fixed }) {
-                // Mine.broadcast("autoAlignPerPage: $autoAlignPerPage")
                 if (lastPage.buttons.filter { !it.fixed }.size >= autoAlignPerPage) {
                     lastInv =
                         Bukkit.createInventory(
@@ -188,29 +186,23 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                     inventories[pages.size] = lastInv
                     lastSlot = 0 // reset count
                     buttonId = 1 // reset count
-                    //Mine.broadcast("nova page sendo criada")
                 }
                 if (button.icon != null) {
                     var buttonSlot = button.effectiveSlot
                     if (autoAlignSkipLines.isNotEmpty()) {
                         if (lastSlot == 0) {
-                            //Mine.broadcast("slot = 1, trabalhando nele")
                             var lastSkip = 0
                             skip@ for (skip in autoAlignSkipLines) {
                                 if (lastSkip.plus(1) != skip) break@skip
                                 lastSlot += if (autoAlignIgnoreColumns && lastSlot == 1) 10 else 9
                                 lastSkip++
                             }
-                            // Mine.broadcast("slot agora é: ")
                         }
                     } else if (lastSlot == 0 && autoAlignIgnoreColumns) {
                         lastSlot = 1
                     }
                     if (lastSlot.plus(1) < 9 * lineAmount) {
                         lastSlot++
-                        // Mine.broadcast("subindo slot: $lastSlot")
-                    } else {
-                        //Mine.broadcast("não ta subindo slot; valor menor")
                     }
                     button.menuId = buttonId
                     val idToVerify = buttonId.minus(1)
@@ -219,15 +211,11 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                         idToVerify.isMultOf(7) && lastSlot.plus(1) < 9 * lineAmount
                     ) {
                         lastSlot += 2
-                        //  Mine.broadcast("colocando +2, é múltiplo de 7; id: ${button.menuId}")
                     }
                     buttonSlot = lastSlot
                     button.autoEffectiveSlot = buttonSlot
                     buttonId++
-                    lastInv.setItem(
-                        buttonSlot,
-                        button.icon
-                    ); //Mine.broadcast("setando item no inventário, slot $buttonSlot; id: ${button.menuId}")
+                    lastInv.setItem(buttonSlot, button.icon)
                     lastPage.buttons.add(button)
                 }
             }
