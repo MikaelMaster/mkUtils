@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.mikael"
-version = "1.0"
+version = "1.1"
 
 java.sourceCompatibility = JavaVersion.VERSION_17
 java.targetCompatibility = JavaVersion.VERSION_17

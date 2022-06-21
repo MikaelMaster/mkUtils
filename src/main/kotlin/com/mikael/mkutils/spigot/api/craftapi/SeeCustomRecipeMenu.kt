@@ -2,14 +2,13 @@ package com.mikael.mkutils.spigot.api.craftapi
 
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineItem
+import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.api.soundClick
 import com.mikael.mkutils.spigot.api.soundPickup
-import net.eduard.api.lib.kotlin.player
-import net.eduard.api.lib.menu.ClickEffect
-import net.eduard.api.lib.menu.Menu
 import org.bukkit.Material
+import org.bukkit.entity.Player
 
-class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe", 6) {
+class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Recipe", 6) {
     companion object {
         lateinit var instance: SeeCustomRecipeMenu
 
@@ -26,10 +25,9 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
 
     init {
         instance = this@SeeCustomRecipeMenu
-        update()
     }
 
-    override fun update() {
+    override fun update(player: Player) {
         removeAllButtons()
 
         button("back") {
@@ -38,10 +36,8 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
             icon = MineItem(Material.ARROW)
                 .name("§cBack")
                 .lore("§7To Custom Crafts.")
-            click = ClickEffect {
-                val player = it.player
+            click = {
                 player.soundClick()
-                CustomRecipesMenu.instance.update()
                 CustomRecipesMenu.instance.open(player)
             }
         }
@@ -52,8 +48,8 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
             setPosition(7, 3)
 
             icon = recipe.result.clone()
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
 
@@ -63,8 +59,8 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
             setPosition(3, 2)
 
             icon = recipe.slot1Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-2") {
@@ -72,24 +68,24 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
 
             fixed = true
             icon = recipe.slot2Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click =  {
+                player.soundPickup()
             }
         }
         button("recipe-item-3") {
             setPosition(5, 2)
 
             icon = recipe.slot3Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-4") {
             setPosition(3, 3)
 
             icon = recipe.slot4Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
 
@@ -97,8 +93,8 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
             setPosition(4, 3)
 
             icon = recipe.slot5Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-6") {
@@ -106,32 +102,32 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : Menu("Custom Craft Recipe",
 
             fixed = true
             icon = recipe.slot6Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-7") {
             setPosition(3, 4)
 
             icon = recipe.slot7Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-8") {
             setPosition(4, 4)
 
             icon = recipe.slot8Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
         button("recipe-item-9") {
             setPosition(5, 4)
 
             icon = recipe.slot9Item ?: MineItem(Material.AIR).name(" ")
-            click = ClickEffect {
-                it.player.soundPickup()
+            click = {
+                player.soundPickup()
             }
         }
 

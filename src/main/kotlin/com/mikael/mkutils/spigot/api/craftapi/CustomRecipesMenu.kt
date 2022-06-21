@@ -2,16 +2,13 @@ package com.mikael.mkutils.spigot.api.craftapi
 
 import com.mikael.mkutils.spigot.api.addLore
 import com.mikael.mkutils.spigot.api.lib.MineItem
+import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.api.soundClick
 import com.mikael.mkutils.spigot.api.soundPickup
-import net.eduard.api.lib.game.SoundEffect
-import net.eduard.api.lib.kotlin.player
-import net.eduard.api.lib.menu.ClickEffect
-import net.eduard.api.lib.menu.Menu
 import org.bukkit.Material
-import org.bukkit.Sound
+import org.bukkit.entity.Player
 
-class CustomRecipesMenu : Menu("Custom Crafts", 6) {
+class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
     companion object {
         lateinit var instance: CustomRecipesMenu
     }
@@ -21,31 +18,23 @@ class CustomRecipesMenu : Menu("Custom Crafts", 6) {
 
         isAutoAlignItems = true
         autoAlignSkipLines = listOf(1, 5, 6)
-        autoAlignSkipColumns = listOf(9, 1)
-        autoAlignPerLine = 7
-        autoAlignPerPage = 3 * autoAlignPerLine
-
-        update()
     }
 
-    override fun update() {
+    override fun update(player: Player) {
         removeAllButtons()
 
-        nextPage.item = MineItem(Material.ARROW).name("§aPage %page")
-        nextPage.setPosition(9, 3)
-        nextPageSound = SoundEffect(Sound.BLOCK_LEVER_CLICK, 2f, 1f)
+        backPageButtonPosX = 0
+        backPageButtonPosY = 3
 
-        previousPage.item = MineItem(Material.ARROW).name("§aPage %page")
-        previousPage.setPosition(1, 3)
-        previousPageSound = SoundEffect(Sound.BLOCK_LEVER_CLICK, 2f, 1f)
+        nextPageButtonPosX = 8
+        nextPageButtonPosY = 3
 
         button("close") {
             setPosition(5, 6)
 
             fixed = true
             icon = MineItem(Material.RED_DYE).name("§cClose")
-            click = ClickEffect {
-                val player = it.player
+            click = {
                 player.soundClick()
                 player.closeInventory()
             }
@@ -59,8 +48,8 @@ class CustomRecipesMenu : Menu("Custom Crafts", 6) {
                 icon = MineItem(Material.COBWEB)
                     .name("§cEmpty")
                     .lore("§7None custom craft have been created yet.")
-                click = ClickEffect {
-                    it.player.soundPickup()
+                click = {
+                    player.soundPickup()
                 }
             }
             return
@@ -68,20 +57,17 @@ class CustomRecipesMenu : Menu("Custom Crafts", 6) {
 
         for (recipe in CraftAPI.getCustomRecipes()) {
             button("craft-${recipe.keyName}") {
-                iconPerPlayer = {
-                    val item = recipe.result.clone()
-                    item.addLore(
-                        "",
-                        "§8Custom craft ID: ${recipe.keyName}",
-                        "",
-                        "§aClick to see the recipe of this item."
-                    )
-                    item
-                }
-                click = ClickEffect {
-                    val player = it.player
+
+                val item = recipe.result.clone()
+                item.addLore(
+                    "",
+                    "§8Custom craft ID: ${recipe.keyName}",
+                    "",
+                    "§aClick to see the recipe of this item."
+                )
+                icon = item
+                click = {
                     player.soundClick()
-                    SeeCustomRecipeMenu.getMenu(recipe).update()
                     SeeCustomRecipeMenu.getMenu(recipe).open(player)
                 }
             }

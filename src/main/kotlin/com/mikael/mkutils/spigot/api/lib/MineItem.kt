@@ -36,7 +36,9 @@ class MineItem(item: ItemStack) : ItemStack(item) {
      */
 
     fun name(name: String? = null): MineItem {
-        this.itemMeta!!.setDisplayName(name)
+        val meta = this.itemMeta ?: return this
+        meta.setDisplayName(name)
+        this.itemMeta = meta
         return this
     }
 
@@ -45,26 +47,29 @@ class MineItem(item: ItemStack) : ItemStack(item) {
     }
 
     fun lore(vararg lore: String): MineItem {
-        this.itemMeta!!.lore = lore.toList()
+        val meta = this.itemMeta ?: return this
+        meta.lore = lore.toList()
+        this.itemMeta = meta
         return this
     }
 
     fun addLore(vararg lines: String): MineItem {
-        val meta = this.itemMeta!!
-        if (meta.lore == null) meta.lore = listOf()
+        val meta = this.itemMeta ?: return this
         val newLore = mutableListOf<String>()
-        for (line in meta.lore!!) {
+        for (line in getLore()) {
             newLore.add(line)
         }
         for (newLine in lines) {
             newLore.add(newLine)
         }
-        itemMeta = meta
+        meta.lore = newLore
+        this.itemMeta = meta
         return this
     }
 
     fun clearLore(): MineItem {
-        this.itemMeta!!.lore = emptyList()
+        val meta = this.itemMeta ?: return this
+        this.itemMeta = meta
         return this
     }
 
@@ -83,29 +88,29 @@ class MineItem(item: ItemStack) : ItemStack(item) {
     }
 
     fun addFlags(vararg flags: ItemFlag): MineItem {
-        val meta = this.itemMeta
-        meta!!.addItemFlags(*flags)
+        val meta = this.itemMeta ?: return this
+        meta.addItemFlags(*flags)
         this.itemMeta = meta
         return this
     }
 
     fun addAllFlags(): MineItem {
-        val meta = this.itemMeta
-        meta!!.addItemFlags(*ItemFlag.values())
+        val meta = this.itemMeta ?: return this
+        meta.addItemFlags(*ItemFlag.values())
         this.itemMeta = meta
         return this
     }
 
     fun removeFlag(flag: ItemFlag): MineItem {
-        val meta = this.itemMeta
-        meta!!.removeItemFlags(flag)
+        val meta = this.itemMeta ?: return this
+        meta.removeItemFlags(flag)
         this.itemMeta = meta
         return this
     }
 
     fun removeFlags(): MineItem {
-        val meta = this.itemMeta
-        meta!!.removeItemFlags(*ItemFlag.values())
+        val meta = this.itemMeta ?: return this
+        meta.removeItemFlags(*ItemFlag.values())
         this.itemMeta = meta
         return this
     }
@@ -137,6 +142,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
         if (!this.type.name.contains("LEATHER")) {
             this.type = Material.LEATHER_CHESTPLATE
         }
+        if (this.itemMeta == null) return this
         val meta = this.itemMeta as LeatherArmorMeta
         meta.setColor(color)
         this.itemMeta = meta
@@ -147,6 +153,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
         if (this.type != Material.POTION) {
             this.type = Material.POTION
         }
+        if (this.itemMeta == null) return this
         val meta = this.itemMeta as PotionMeta
         meta.setMainEffect(effect.type)
         meta.addCustomEffect(effect, true)
@@ -156,6 +163,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
 
     fun spawnerType(type: EntityType): MineItem {
         this.type = Material.SPAWNER
+        if (this.itemMeta == null) return this
         val meta = this.itemMeta as BlockStateMeta
         val state = meta.blockState
         val spawner = state as CreatureSpawner
@@ -172,6 +180,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
 
     fun skull(skullName: String): MineItem { // Custom Skull Name
         this.type = Material.PLAYER_HEAD
+        if (this.itemMeta == null) return this
         val meta = this.itemMeta as SkullMeta
         meta.owner = skullName
         this.itemMeta = meta
@@ -180,26 +189,25 @@ class MineItem(item: ItemStack) : ItemStack(item) {
 
     private fun texture(textureBase64: String): MineItem { // Custom Skull Texture
         this.type = Material.PLAYER_HEAD
-        val newItemMeta = this.itemMeta as SkullMeta
+        if (this.itemMeta == null) return this
+        val meta = this.itemMeta as SkullMeta
         val profile = GameProfile(UUID.randomUUID(), null as String?)
         profile.properties.put("textures", Property("textures", textureBase64))
         try {
-            val profileField = newItemMeta.javaClass.getDeclaredField("profile")
+            val profileField = meta.javaClass.getDeclaredField("profile")
             profileField.isAccessible = true
-            profileField[newItemMeta] = profile
+            profileField[meta] = profile
         } catch (ex: Exception) {
             ex.printStackTrace()
         }
-        this.itemMeta = newItemMeta
+        this.itemMeta = meta
         return this
     }
 
     fun skin(skinUrl: String): MineItem { // Custom Skull Skin
         this.skinURL = skinUrl
-        return this.texture(
-            Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", skinUrl).toByteArray())
-                .toString()
-        )
+        val encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", skinUrl).toByteArray())
+        return texture(String(encodedData)) // DON'T CHANGE IT-- .toString() will NOT work
     }
 
     fun skinId(skinId: String): MineItem { // Custom Skull Skin ID

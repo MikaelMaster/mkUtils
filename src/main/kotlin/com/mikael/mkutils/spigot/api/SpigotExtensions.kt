@@ -2,6 +2,7 @@ package com.mikael.mkutils.spigot.api
 
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
+import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.eduard.api.lib.game.Particle
@@ -19,12 +20,15 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Item
 import org.bukkit.entity.Monster
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
+val InventoryClickEvent.player get() = this.whoClicked as Player
+
 fun <T : ItemStack> T.addLore(vararg lines: String): T {
-    val meta = itemMeta!!
-    if (meta.lore == null) meta.lore = listOf()
+    val meta = this.itemMeta!!
+    if (meta.lore == null) meta.lore = emptyList()
     val newLore = mutableListOf<String>()
     for (line in meta.lore!!) {
         newLore.add(line)
@@ -32,12 +36,17 @@ fun <T : ItemStack> T.addLore(vararg lines: String): T {
     for (newLine in lines) {
         newLore.add(newLine)
     }
-    itemMeta = meta
+    meta.lore = newLore
+    this.itemMeta = meta
     return this
 }
 
 fun ItemStack.toItemBuilder(): ItemBuilder {
     return ItemBuilder(this)
+}
+
+fun ItemStack.toMineItem(): MineItem {
+    return MineItem(this)
 }
 
 fun Entity.setInvincible(isInvincible: Boolean): Entity {

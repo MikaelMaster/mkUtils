@@ -3,6 +3,7 @@ package com.mikael.mkutils.spigot
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.formatEN
+import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
@@ -26,7 +27,6 @@ import net.eduard.api.lib.kotlin.store
 import net.eduard.api.lib.manager.CommandManager
 import net.eduard.api.lib.menu.Menu
 import net.eduard.api.lib.modules.*
-import net.eduard.api.lib.plugin.IPluginInstance
 import net.eduard.api.lib.score.DisplayBoard
 import net.eduard.api.lib.storage.StorageAPI
 import net.eduard.api.lib.storage.storables.BukkitStorables
@@ -38,7 +38,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import kotlin.concurrent.thread
 
-class UtilsMain : JavaPlugin(), IPluginInstance, BukkitTimeHandler {
+class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     companion object {
         lateinit var instance: UtilsMain
     }

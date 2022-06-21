@@ -17,7 +17,6 @@ class CustomCraftsCommand : CommandManager("customcrafts", "customcraftrecipes",
     override fun playerCommand(player: Player, args: Array<String>) {
         player.runCommand {
             player.soundClick(2f, 2f)
-            CustomRecipesMenu.instance.update()
             CustomRecipesMenu.instance.open(player)
         }
     }

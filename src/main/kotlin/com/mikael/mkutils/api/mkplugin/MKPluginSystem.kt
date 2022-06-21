@@ -1,10 +1,8 @@
 package com.mikael.mkutils.api.mkplugin
 
-import net.eduard.api.lib.plugin.IPluginInstance
-
 object MKPluginSystem {
 
-    val loadedMKPlugins = mutableListOf<IPluginInstance>()
+    val loadedMKPlugins = mutableListOf<MKPlugin>()
 
     init {
         loadedMKPlugins.clear()

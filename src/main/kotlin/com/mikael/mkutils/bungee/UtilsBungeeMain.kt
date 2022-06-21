@@ -2,6 +2,7 @@ package com.mikael.mkutils.bungee
 
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
+import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.toTextComponent
@@ -19,7 +20,6 @@ import net.eduard.api.lib.kotlin.register
 import net.eduard.api.lib.kotlin.resolvePut
 import net.eduard.api.lib.kotlin.store
 import net.eduard.api.lib.modules.Copyable
-import net.eduard.api.lib.plugin.IPluginInstance
 import net.eduard.api.lib.storage.StorageAPI
 import net.md_5.bungee.api.ProxyServer
 import net.md_5.bungee.api.plugin.Plugin
@@ -27,7 +27,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-class UtilsBungeeMain : Plugin(), IPluginInstance {
+class UtilsBungeeMain : Plugin(), MKPlugin {
     companion object {
         lateinit var instance: UtilsBungeeMain
     }
