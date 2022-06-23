@@ -60,8 +60,8 @@ object LocationUtil {
     }
 
     fun isInAABB(vector: Vector, min: Vector, max: Vector): Boolean {
-        val realMin: Vector = Vector.getMinimum(min, max)
-        val realMax: Vector = Vector.getMaximum(min, max)
+        val realMin = Vector.getMinimum(min, max)
+        val realMax = Vector.getMaximum(min, max)
         return vector.isInAABB(realMin, realMax)
     }
 

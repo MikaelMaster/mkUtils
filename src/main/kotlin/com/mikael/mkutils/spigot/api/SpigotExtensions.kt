@@ -7,8 +7,6 @@ import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
-import net.eduard.api.lib.game.Particle
-import net.eduard.api.lib.game.ParticleType
 import net.md_5.bungee.api.ChatMessageType
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -27,10 +25,13 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 /**
- * @return player's opened [MineMenu].
+ * @return Player's opened [MineMenu].
  */
 val Player.openedMineMenu: MineMenu? get() = MenuSystem.openedMenu[this]
 
+/**
+ * @return The player that clicked the menu. ([InventoryClickEvent.getWhoClicked] as [Player])
+ */
 val InventoryClickEvent.player get() = this.whoClicked as Player
 
 fun <T : ItemStack> T.addLore(vararg lines: String): T {
@@ -48,10 +49,17 @@ fun <T : ItemStack> T.addLore(vararg lines: String): T {
     return this
 }
 
+/**
+ * @return A new [ItemBuilder] cloning the given [ItemStack].
+ */
+@Deprecated("Deprecated since mkUtils v1.1; Use MineItem instead ItemBuilder.", ReplaceWith("this.toMineItem()"))
 fun ItemStack.toItemBuilder(): ItemBuilder {
     return ItemBuilder(this)
 }
 
+/**
+ * @return A new [MineItem] cloning the given [ItemStack].
+ */
 fun ItemStack.toMineItem(): MineItem {
     return MineItem(this)
 }
@@ -164,17 +172,6 @@ fun <T : ItemStack> T.notBreakable(isUnbreakable: Boolean = true): T {
     meta.isUnbreakable = isUnbreakable
     itemMeta = meta
     return this
-}
-
-@Deprecated(
-    "Does NOT work on new versions of minecraft that not use 1.8 protocol.", ReplaceWith(
-        "Particle(ParticleType.LARGE_SMOKE, 1).create(player, this.clone().add(0.5, 1.0, 0.5))",
-        "net.eduard.api.lib.game.Particle",
-        "net.eduard.api.lib.game.ParticleType"
-    )
-)
-fun Location.smokeDenyBuild(player: Player) {
-    Particle(ParticleType.LARGE_SMOKE, 1).create(player, this.clone().add(0.5, 1.0, 0.5))
 }
 
 /**
@@ -377,6 +374,7 @@ inline fun Player.runCommand(crossinline thing: (() -> Unit)): Boolean {
  * @param sendLoading if is to send a 'Loading...' message before try to load the Unit using async.
  * @param thing the block code to run using async and try catch.
  */
+@Deprecated("Deprecated since mkUtils v1.1; Use Player.runCommand instead, intering an Async Block")
 inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing: () -> (Unit)) {
     if (sendLoading) this.sendMessage("§eLoading...")
     UtilsMain.instance.asyncTask {

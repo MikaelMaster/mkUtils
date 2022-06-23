@@ -1,8 +1,6 @@
 package com.mikael.mkutils.spigot.api.lib.menu
 
 import com.mikael.mkutils.spigot.api.lib.MineItem
-import com.mikael.mkutils.spigot.api.player
-import com.mikael.mkutils.spigot.api.soundPickup
 import org.bukkit.Material
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
@@ -24,9 +22,11 @@ open class MenuButton(var name: String) {
             return y * 9 + positionX - 1
         }
 
-    var icon: ItemStack? = MineItem(Material.BARRIER)
-    var click: ((InventoryClickEvent) -> Unit) = {
-        it.player.soundPickup()
+    var icon: ItemStack? = MineItem(Material.BARRIER) // default icon = Barrier; it can be set to null (AIR)
+    internal var click: ((InventoryClickEvent) -> Unit) = {} // default click = do nothing
+
+    fun setupClick(setup: ((InventoryClickEvent) -> Unit)) {
+        click = setup
     }
 
     open fun setPosition(x: Int, y: Int) {
