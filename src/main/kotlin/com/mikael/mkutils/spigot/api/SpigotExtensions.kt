@@ -3,6 +3,8 @@ package com.mikael.mkutils.spigot.api
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineItem
+import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
+import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.eduard.api.lib.game.Particle
@@ -23,6 +25,11 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+
+/**
+ * @return player's opened [MineMenu].
+ */
+val Player.openedMineMenu: MineMenu? get() = MenuSystem.openedMenu[this]
 
 val InventoryClickEvent.player get() = this.whoClicked as Player
 

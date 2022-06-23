@@ -29,7 +29,7 @@ val syncMysqUpdatesKey = Any()
  * @param thing the block code to execute using the [syncMysqUpdatesKey].
  * @return True if the block code has been executed with no error. Otherwise, false.
  */
-fun syncMysql(thing: (() -> Unit)): Boolean {
+inline fun syncMysql(crossinline thing: (() -> Unit)): Boolean {
     synchronized(syncMysqUpdatesKey) {
         return try {
             thing.invoke()

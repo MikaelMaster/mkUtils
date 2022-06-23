@@ -284,7 +284,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         )
         config.add(
             "CustomCrafts.customCraftsMenuAndCommand",
-            true,
+            false,
             "Enable/disable the command and menus to",
             "show mkUtils registered custom item crafts."
         )

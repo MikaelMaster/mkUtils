@@ -4,6 +4,7 @@ import com.mikael.mkutils.api.isMultOf
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.MineListener
+import com.mikael.mkutils.spigot.api.openedMineMenu
 import com.mikael.mkutils.spigot.api.player
 import com.mikael.mkutils.spigot.api.soundClick
 import com.mikael.mkutils.spigot.listener.GeneralListener
@@ -44,8 +45,8 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     var nextPageButtonItem = MineItem(Material.ARROW).name("§aPage %page%")
     // Back and Skip Page buttons options - End
 
+    val buttonsToRegister = mutableSetOf<MenuButton>()
     private val pages = mutableSetOf<MenuPage>()
-    private val buttonsToRegister = mutableSetOf<MenuButton>()
     private val inventories = mutableMapOf<Int, Inventory>()
 
     val buttons: List<MenuButton>
@@ -78,7 +79,11 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         MenuSystem.registeredMenus.remove(this)
     }
 
-    open fun removeAllButtons() {
+    fun getPageOpened(player: Player): Int? {
+        return MenuSystem.openedPage[player]?.pageId
+    }
+
+    fun removeAllButtons() {
         for (page in pages) {
             page.buttons.clear()
         }
@@ -134,7 +139,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         }
     }
 
-    open fun open(player: Player, pageToOpen: Int): Inventory {
+    fun open(player: Player, pageToOpen: Int): Inventory {
         update(player) // Rebuilds menu
         if (pageToOpen < 1) error("cannot open a menu; the page must be higher than 0")
         if (!isAutoAlignItems && pageToOpen != 1) error("cannot open a non-autoAlignItems menu with a page different than 1")
@@ -258,11 +263,11 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         }
     }
 
-    open fun open(player: Player): Inventory {
+    fun open(player: Player): Inventory {
         return open(player, 1)
     }
 
-    open fun button(buttonName: String? = null, setup: MenuButton.() -> Unit): MenuButton {
+    inline fun button(buttonName: String? = null, crossinline setup: (MenuButton.() -> Unit)): MenuButton {
         val newButton = if (buttonName != null) MenuButton(buttonName) else MenuButton()
         newButton.setup()
         buttonsToRegister.add(newButton)
@@ -286,9 +291,9 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onInvClick(e: InventoryClickEvent) {
         if (e.clickedInventory == null) return
-        val clickedPage = pages.firstOrNull { e.clickedInventory == it.inventory!! } ?: return
-        val button = clickedPage.buttons.firstOrNull { e.slot == it.effectiveSlot } ?: return
-        button.click.invoke(e)
+        val clickedPage = pages.firstOrNull { e.clickedInventory == it.inventory!! }
+        clickedPage?.buttons?.firstOrNull { e.slot == it.effectiveSlot }?.click?.invoke(e)
+        if (e.player.openedMineMenu == null) return
         e.isCancelled = true
     }
 // Listeners - End

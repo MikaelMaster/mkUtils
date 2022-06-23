@@ -68,7 +68,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
 
             fixed = true
             icon = recipe.slot2Item ?: MineItem(Material.AIR).name(" ")
-            click =  {
+            click = {
                 player.soundPickup()
             }
         }
@@ -135,8 +135,8 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
 
         x@ for (x in 1..9) {
             y@ for (y in 1..6) {
-                if (buttons.firstOrNull { it.positionX == x && it.positionY == y } != null) continue@y
-                button {
+                if (buttonsToRegister.firstOrNull { it.positionX == x && it.positionY == y } != null) continue@y
+                button("button-x${x}-y${y}") {
                     setPosition(x, y)
 
                     icon = MineItem(Material.BLACK_STAINED_GLASS_PANE)

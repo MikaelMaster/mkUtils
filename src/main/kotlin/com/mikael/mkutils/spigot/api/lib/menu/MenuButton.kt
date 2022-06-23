@@ -1,6 +1,8 @@
 package com.mikael.mkutils.spigot.api.lib.menu
 
 import com.mikael.mkutils.spigot.api.lib.MineItem
+import com.mikael.mkutils.spigot.api.player
+import com.mikael.mkutils.spigot.api.soundPickup
 import org.bukkit.Material
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
@@ -18,12 +20,14 @@ open class MenuButton(var name: String) {
     val effectiveSlot: Int
         get() {
             if (autoEffectiveSlot != null) return autoEffectiveSlot!!
-            val y = if (this.positionY > 1) this.positionY - 1 else this.positionY
+            val y = if (this.positionY > 1) this.positionY - 1 else 0
             return y * 9 + positionX - 1
         }
 
     var icon: ItemStack? = MineItem(Material.BARRIER)
-    var click: (InventoryClickEvent) -> Unit = {}
+    var click: ((InventoryClickEvent) -> Unit) = {
+        it.player.soundPickup()
+    }
 
     open fun setPosition(x: Int, y: Int) {
         positionX = x
