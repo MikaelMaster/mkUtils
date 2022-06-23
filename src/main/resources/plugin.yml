@@ -2,6 +2,7 @@ name: mkUtils
 version: 1.1
 api-version: 1.17
 load: POSTWORLD
+loadbefore: [ WRLDPaymentsAPI ]
 author: Mikael
 main: com.mikael.mkutils.spigot.UtilsMain
 
