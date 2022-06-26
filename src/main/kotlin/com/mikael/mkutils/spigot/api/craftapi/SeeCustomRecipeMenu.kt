@@ -28,7 +28,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
     }
 
     override fun update(player: Player) {
-        removeAllButtons()
+        removeAllButtons(player)
 
         button("back") {
             setPosition(5, 6)

@@ -23,8 +23,12 @@ open class MenuButton(var name: String) {
         }
 
     var icon: ItemStack? = MineItem(Material.BARRIER) // default icon = Barrier; it can be set to null (AIR)
-    internal var click: ((InventoryClickEvent) -> Unit) = {} // default click = do nothing
+    var click: ((InventoryClickEvent) -> Unit) = click@{ /* it = InventoryClickEvent */ } // default click = do nothing
 
+    @Deprecated(
+        "Deprecated since mkUtils v1.1; Use the click var and Unit {} instead.",
+        ReplaceWith("click = clickName@{ Do something on click (it = InventoryClickEvent) }")
+    )
     fun setupClick(setup: ((InventoryClickEvent) -> Unit)) {
         click = setup
     }

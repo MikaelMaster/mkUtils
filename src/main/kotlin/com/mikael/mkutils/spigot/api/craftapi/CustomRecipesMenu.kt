@@ -1,6 +1,5 @@
 package com.mikael.mkutils.spigot.api.craftapi
 
-import com.mikael.mkutils.spigot.api.addLore
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.api.soundClick
@@ -21,7 +20,7 @@ class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
     }
 
     override fun update(player: Player) {
-        removeAllButtons()
+        removeAllButtons(player)
 
         backPageButtonPosX = 0
         backPageButtonPosY = 3
@@ -58,14 +57,13 @@ class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
         for (recipe in CraftAPI.getCustomRecipes()) {
             button("craft-${recipe.keyName}") {
 
-                val item = recipe.result.clone()
-                item.addLore(
-                    "",
-                    "§8Custom craft ID: ${recipe.keyName}",
-                    "",
-                    "§aClick to see the recipe of this item."
-                )
-                icon = item
+                icon = MineItem(recipe.result.clone())
+                    .lore(
+                        "",
+                        "§8Custom craft ID: ${recipe.keyName}",
+                        "",
+                        "§aClick to see the recipe of this item."
+                    )
                 click = {
                     player.soundClick()
                     SeeCustomRecipeMenu.getMenu(recipe).open(player)

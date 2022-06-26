@@ -8,6 +8,8 @@ import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.craftapi.CraftAPI
+import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
+import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
@@ -191,8 +193,14 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     }
 
     private fun reload() {
+        // Menu System - 'Debug' Mode
+        if (config.getBoolean("MenuAPI.debugMode")) {
+            SinglePageExampleMenu().registerMenu(this)
+            ExampleMenuCommand().registerCommand(this)
+        }
+        Menu.isDebug = false // another debug type; legacy
+
         Config.isDebug = false
-        Menu.isDebug = false
         Hologram.debug = false
         CommandManager.debugEnabled = false
         CommandManager.DEFAULT_USAGE_PREFIX = "§cUsage: "
@@ -251,8 +259,14 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         config.add(
             "MenuAPI.autoUpdateTicks",
             60,
-            "Time to refresh players open menus.",
+            "Time to refresh players opened menus.",
             "Values less than 20 will cause lag. 20 ticks = 1s."
+        )
+        config.add(
+            "MenuAPI.debugMode",
+            false,
+            "If true, example/test menus will be registered",
+            "and menu test commands will be registered too."
         )
         config.add(
             "BungeeAPI.isEnabled", false, "Whether to activate the BungeeAPI."

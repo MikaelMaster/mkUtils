@@ -26,7 +26,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
      *
      * This class represents an [ItemStack].
      *
-     * To create invoke it you can use:
+     * To create/invoke it you can use:
      * - MineItem(item: [ItemStack])
      * - MineItem(material: [Material])
      * - MineItem(material: [Material], amount: [Int])

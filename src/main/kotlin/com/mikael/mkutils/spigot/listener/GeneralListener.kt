@@ -2,13 +2,11 @@ package com.mikael.mkutils.spigot.listener
 
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineListener
-import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import org.bukkit.entity.Entity
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.player.PlayerCommandPreprocessEvent
-import org.bukkit.event.player.PlayerQuitEvent
 
 class GeneralListener : MineListener() {
     companion object {
@@ -32,13 +30,6 @@ class GeneralListener : MineListener() {
         e.isCancelled = true
     }
     // Invincible Entity System - End
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onQuit(e: PlayerQuitEvent) { // MineMenu System extra - remove player from lists
-        val player = e.player
-        MenuSystem.openedMenu.remove(player)
-        MenuSystem.openedPage.remove(player)
-    }
 
     @EventHandler(priority = EventPriority.HIGH)
     fun versionCommand(e: PlayerCommandPreprocessEvent) {

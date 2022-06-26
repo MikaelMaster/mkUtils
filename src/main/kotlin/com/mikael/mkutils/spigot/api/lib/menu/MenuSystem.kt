@@ -1,5 +1,6 @@
 package com.mikael.mkutils.spigot.api.lib.menu
 
+import com.mikael.mkutils.spigot.api.openedMineMenu
 import org.bukkit.entity.Player
 
 object MenuSystem {
@@ -10,7 +11,7 @@ object MenuSystem {
     val openedPage = mutableMapOf<Player, MenuPage>()
 
     fun isMenuOpen(menu: MineMenu, player: Player): Boolean {
-        return openedMenu.containsKey(player) && openedMenu[player]!! == menu
+        return player.openedMineMenu != null && player.openedMineMenu!! == menu
     }
 
 }

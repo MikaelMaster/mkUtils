@@ -3,6 +3,7 @@ package com.mikael.mkutils.spigot.api
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineItem
+import com.mikael.mkutils.spigot.api.lib.menu.MenuPage
 import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.listener.GeneralListener
@@ -25,9 +26,34 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 /**
- * @return Player's opened [MineMenu].
+ * Sets/returns player's opened [MineMenu].
+ *
+ * @return Player's opened [MineMenu]?.
  */
-val Player.openedMineMenu: MineMenu? get() = MenuSystem.openedMenu[this]
+var Player.openedMineMenu: MineMenu?
+    get() = MenuSystem.openedMenu[this]
+    internal set(value) {
+        if (value == null) {
+            MenuSystem.openedMenu.remove(this)
+        } else {
+            MenuSystem.openedMenu[this] = value
+        }
+    }
+
+/**
+ * Sets/returns player's opened [MenuPage].
+ *
+ * @return Player's opened [MenuPage]?.
+ */
+var Player.openedMineMenuPage: MenuPage?
+    get() = MenuSystem.openedPage[this]
+    internal set(value) {
+        if (value == null) {
+            MenuSystem.openedPage.remove(this)
+        } else {
+            MenuSystem.openedPage[this] = value
+        }
+    }
 
 /**
  * @return The player that clicked the menu. ([InventoryClickEvent.getWhoClicked] as [Player])

@@ -5,9 +5,10 @@ import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.MineListener
 import com.mikael.mkutils.spigot.api.openedMineMenu
+import com.mikael.mkutils.spigot.api.openedMineMenuPage
 import com.mikael.mkutils.spigot.api.player
 import com.mikael.mkutils.spigot.api.soundClick
-import com.mikael.mkutils.spigot.listener.GeneralListener
+import net.eduard.api.lib.modules.Mine
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -20,7 +21,25 @@ import org.bukkit.inventory.Inventory
 
 open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
-    var isAutoUpdate = true // Auto update all opened menus every 3s (finish it)
+    /**
+     * MineMenu util class v1.0
+     *
+     * This class extends a [MineListener].
+     *
+     * You can learn how to use it on [com.mikael.mkutils.spigot.api.lib.menu.example].
+     * There, you'll find examples about how to do all different types of menu available.
+     *
+     * To create/invoke it you can use:
+     * - MineMenu(title: [String], lineAmount: [Int])
+     *
+     * @author Mikael
+     * @see MineListener
+     * @see MenuButton
+     * @see MenuPage
+     * @see MenuSystem
+     */
+
+    var isAutoUpdate = true // Auto update this menu
 
     // Auto Align options - Start
     var isAutoAlignItems = false
@@ -46,15 +65,18 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     // Back and Skip Page buttons options - End
 
     val buttonsToRegister = mutableSetOf<MenuButton>()
-    private val pages = mutableSetOf<MenuPage>()
-    private val inventories = mutableMapOf<Int, Inventory>()
+    private val pages = mutableMapOf<Player, MutableList<MenuPage>>()
+    private val inventories = mutableMapOf<Player, MutableMap<Int, Inventory>>()
 
-    val buttons: List<MenuButton>
+    val buttons: Map<Player, List<MenuButton>>
         get() {
-            val allButtons = mutableListOf<MenuButton>()
-            for (page in pages) {
-                for (button in page.buttons) {
-                    allButtons.add(button)
+            val allButtons = mutableMapOf<Player, MutableList<MenuButton>>()
+            for ((player, pages) in pages) {
+                allButtons[player] = mutableListOf()
+                for (page in pages) {
+                    for (button in page.buttons) {
+                        allButtons[player]!!.add(button)
+                    }
                 }
             }
             return allButtons
@@ -68,23 +90,24 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
     open fun unregisterMenu(plugin: MKPlugin) {
         MenuSystem.openedMenu.keys.removeIf {// Remove menu, pages and close it to players
-            val menu = MenuSystem.openedMenu[it]!!
+            val menu = it.openedMineMenu!!
             if (menu == this) it.closeInventory()
             MenuSystem.openedPage.keys.removeIf { pagePlayer ->
-                pages.contains(MenuSystem.openedPage[pagePlayer]!!)
+                pages.containsKey(pagePlayer)
             }
-            MenuSystem.openedMenu[it]!! == this
+            menu == this
         }
         this.unregisterListener()
         MenuSystem.registeredMenus.remove(this)
     }
 
     fun getPageOpened(player: Player): Int? {
-        return MenuSystem.openedPage[player]?.pageId
+        return player.openedMineMenuPage?.pageId
     }
 
-    fun removeAllButtons() {
-        for (page in pages) {
+    fun removeAllButtons(player: Player) {
+        if (!pages.containsKey(player)) return
+        for (page in pages[player]!!) {
             page.buttons.clear()
         }
     }
@@ -141,33 +164,36 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
     fun open(player: Player, pageToOpen: Int): Inventory {
         update(player) // Rebuilds menu
-        if (pageToOpen < 1) error("cannot open a menu; the page must be higher than 0")
-        if (!isAutoAlignItems && pageToOpen != 1) error("cannot open a non-autoAlignItems menu with a page different than 1")
-        if (pageToOpen > 1 && inventories[pageToOpen] == null) error("the required page $pageToOpen is not registered; pages size: ${pages.size}")
+        if (lineAmount < 1 || lineAmount > 6) error("menu lineAmount must be between 1 and 6")
+        if (!isAutoAlignItems && pageToOpen != 1) error("can't open a non-autoAlignItems menu with a page different than 1")
+        // if (pageToOpen > 1 && inventories[pageToOpen] == null) error("the required page $pageToOpen is not registered; pages size: ${pages.size}") // legacy
         autoAlignSkipLines.forEach {
-            if (it != 1 && it != 2 && it != 3 && it != 4 && it != 5 && it != 6) error("menu autoAlignSkipLines can't constains any int different than 1, 2, 3, 4, 5 and 6")
+            if (it != 1 && it != 2 && it != 3 && it != 4 && it != 5 && it != 6) error("menu autoAlignSkipLines can't contains any int different than 1, 2, 3, 4, 5 and 6")
             if (it > lineAmount) error("this menu just have $lineAmount lines, can't apply rule to skip line $it")
         }
 
-        for (page in pages) {
+        val playerPages = pages.getOrPut(player) { mutableListOf() }
+        val playerInventories = inventories.getOrPut(player) { mutableMapOf() }
+
+        for (page in playerPages) {
             page.buttons.clear()
             page.inventory = null
         }
-        pages.clear()
-        inventories.clear()
+        playerPages.clear()
+        playerInventories.clear()
 
         if (isAutoAlignItems) {
             var lastInv: Inventory =
                 Bukkit.createInventory(
                     null,
                     9 * lineAmount,
-                    title.replace("%page%", pages.size.plus(1).toString(), true)
+                    title.replace("%page%", playerPages.size.plus(1).toString(), true)
                 )
             var lastPage = MenuPage()
-            lastPage.pageId = pages.size.plus(1)
+            lastPage.pageId = playerPages.size.plus(1)
             lastPage.inventory = lastInv
-            pages.add(lastPage)
-            inventories[pages.size] = lastInv
+            playerPages.add(lastPage)
+            playerInventories[playerPages.size] = lastInv
             var lastSlot = 0
             var buttonId = 1
 
@@ -177,18 +203,18 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                         Bukkit.createInventory(
                             null,
                             9 * lineAmount,
-                            title.replace("%page%", pages.size.plus(1).toString(), true)
+                            title.replace("%page%", playerPages.size.plus(1).toString(), true)
                         )
                     val lp = lastPage
                     lastPage.hasNextPage = true
                     lastPage = MenuPage()
-                    lastPage.pageId = pages.size.plus(1)
+                    lastPage.pageId = playerPages.size.plus(1)
                     lastPage.inventory = lastInv
                     lastPage.hasBackPage = true
                     lastPage.backPage = lp
                     lp.nextPage = lastPage
-                    pages.add(lastPage)
-                    inventories[pages.size] = lastInv
+                    playerPages.add(lastPage)
+                    playerInventories[playerPages.size] = lastInv
                     lastSlot = 0 // reset count
                     buttonId = 1 // reset count
                 }
@@ -224,7 +250,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                     lastPage.buttons.add(button)
                 }
             }
-            pages.forEach { menuPage ->
+            playerPages.forEach { menuPage ->
                 invokePageNextAndBackButtons(menuPage)
                 for (fixedButton in buttonsToRegister.filter { it.fixed }) {
                     menuPage.inventory!!.setItem(fixedButton.effectiveSlot, fixedButton.icon)
@@ -232,24 +258,27 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                 }
             }
             buttonsToRegister.clear()
-            val choosenInv = inventories[pageToOpen] ?: error("cannot open page $pageToOpen; pages size: ${pages.size}")
+            val choosenInv =
+                playerInventories[pageToOpen] ?: error("cannot open page $pageToOpen; pages size: ${pages.size}")
             player.openInventory(choosenInv)
+            player.openedMineMenu = this
+            player.openedMineMenuPage = playerPages.first { it.pageId == pageToOpen }
             return choosenInv
         } else {
             val singlePage = MenuPage()
             val pageInventory =
-                inventories.getOrDefault(
+                playerInventories.getOrDefault(
                     pageToOpen,
                     Bukkit.createInventory(
                         null,
                         9 * lineAmount,
-                        title.replace("%page%", pages.size.plus(1).toString(), true)
+                        title.replace("%page%", playerPages.size.plus(1).toString(), true)
                     )
                 )
             pageInventory.clear()
             singlePage.inventory = pageInventory
-            inventories[pageToOpen] = pageInventory
-            pages.add(singlePage)
+            playerInventories[pageToOpen] = pageInventory
+            playerPages.add(singlePage)
 
             for (button in buttonsToRegister) {
                 if (button.icon != null) {
@@ -259,6 +288,8 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
             }
             buttonsToRegister.clear()
             player.openInventory(pageInventory)
+            player.openedMineMenu = this
+            player.openedMineMenuPage = singlePage
             return pageInventory
         }
     }
@@ -276,24 +307,29 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
 // Listeners - Start
     /**
-     * [PlayerQuitEvent] is now on [GeneralListener].
+     * [PlayerQuitEvent] is not used anymore, [onInvClose] already clear all lists on quit.
      */
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onInvClose(e: InventoryCloseEvent) {
         if (e.player !is Player) return
-        if (pages.firstOrNull { e.inventory == it.inventory!! } == null) return
         val player = e.player as Player
-        MenuSystem.openedMenu.remove(player)
-        MenuSystem.openedPage.remove(player)
+        val playerPages = pages[player] ?: return
+        if (playerPages.firstOrNull { e.inventory == it.inventory!! } == null) return
+        pages.remove(player)
+        inventories.remove(player)
+        player.openedMineMenu = null // MenuSystem.openedMenu.remove(player)
+        player.openedMineMenuPage = null // MenuSystem.openedPage.remove(player)
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onInvClick(e: InventoryClickEvent) {
         if (e.clickedInventory == null) return
-        val clickedPage = pages.firstOrNull { e.clickedInventory == it.inventory!! }
+        val player = e.player
+        val playerPages = pages[player] ?: return
+        val clickedPage = playerPages.firstOrNull { e.clickedInventory == it.inventory!! }
         clickedPage?.buttons?.firstOrNull { e.slot == it.effectiveSlot }?.click?.invoke(e)
-        if (e.player.openedMineMenu == null) return
+        if (player.openedMineMenu == null) return
         e.isCancelled = true
     }
 // Listeners - End
