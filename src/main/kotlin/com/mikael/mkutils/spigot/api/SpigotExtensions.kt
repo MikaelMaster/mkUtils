@@ -375,6 +375,25 @@ inline fun Player.asyncLoading(
 }
 
 /**
+ * Use it anywhere to run the Unit using a try catch. If any error occur,
+ * the player will receive a message telling he that an error has been occured.
+ *
+ * @param thing the block code to run using try catch.
+ * @return True if the block code was runned with no problems. Otherwise, false.
+ */
+inline fun Player.runBlock(crossinline thing: (() -> Unit)): Boolean {
+    return try {
+        thing.invoke()
+        true
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+        this.soundNo()
+        this.sendMessage("§cAn internal error occurred while executing something to you.")
+        false
+    }
+}
+
+/**
  * Use in a command to run the Unit using a try catch. If any error occur,
  * the player will receive a message telling he that an error has been occured.
  *

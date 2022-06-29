@@ -11,6 +11,7 @@ import com.mikael.mkutils.spigot.api.craftapi.CraftAPI
 import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
+import com.mikael.mkutils.spigot.api.storable.MineItemStorable
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask
@@ -175,6 +176,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
         // StorableTypes
         StorageAPI.registerStorable(Location::class.java, LocationStorable())
+        // StorageAPI.registerStorable(MineItemStorable::class.java, MineItemStorable()) // not finished yet
 
         StorageAPI.startGson()
     }

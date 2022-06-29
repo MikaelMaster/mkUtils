@@ -41,10 +41,10 @@ tasks {
         options.encoding = "UTF-8"
     }
     compileKotlin {
-        kotlinOptions.jvmTarget = "1.8"
+        kotlinOptions.jvmTarget = "17"
     }
     compileTestKotlin {
-        kotlinOptions.jvmTarget = "1.8"
+        kotlinOptions.jvmTarget = "17"
     }
     shadowJar {
         archiveVersion.set("1.1")

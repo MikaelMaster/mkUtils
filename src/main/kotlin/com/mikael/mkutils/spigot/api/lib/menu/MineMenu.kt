@@ -88,7 +88,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         MenuSystem.registeredMenus.add(this)
     }
 
-    open fun unregisterMenu(plugin: MKPlugin) {
+    open fun unregisterMenu() {
         MenuSystem.openedMenu.keys.removeIf {// Remove menu, pages and close it to players
             val menu = it.openedMineMenu!!
             if (menu == this) it.closeInventory()
