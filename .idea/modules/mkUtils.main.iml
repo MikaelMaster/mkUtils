@@ -6,6 +6,7 @@
         <autoDetectTypes>
           <platformType>PAPER</platformType>
           <platformType>BUNGEECORD</platformType>
+          <platformType>MCP</platformType>
           <platformType>ADVENTURE</platformType>
         </autoDetectTypes>
       </configuration>
