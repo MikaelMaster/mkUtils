@@ -1,7 +1,6 @@
 package com.mikael.mkutils.spigot.api.lib.menu
 
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.ItemStack
 
 open class MenuPage {
 

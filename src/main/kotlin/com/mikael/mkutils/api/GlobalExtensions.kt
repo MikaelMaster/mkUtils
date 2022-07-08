@@ -53,8 +53,12 @@ val Redis = RedisAPI
  *
  * @return [TextComponent] with the given [String].
  */
-fun String.toTextComponent(): TextComponent {
-    return TextComponent(this)
+fun String?.toTextComponent(): TextComponent {
+    return if (this != null) {
+        TextComponent(this)
+    } else {
+        TextComponent("")
+    }
 }
 
 /**

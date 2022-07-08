@@ -8,22 +8,30 @@ import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
+import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatMessageType
+import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable
 import org.bukkit.block.data.Waterlogged
-import org.bukkit.entity.ArmorStand
-import org.bukkit.entity.Creature
-import org.bukkit.entity.Entity
-import org.bukkit.entity.Item
-import org.bukkit.entity.Monster
-import org.bukkit.entity.Player
+import org.bukkit.entity.*
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+
+/**
+ * @return a Paper [Component] with the given [String].
+ */
+fun String?.toPaperComponent(): Component {
+    return if (this != null) {
+        Component.text(this)
+    } else {
+        Component.text("")
+    }
+}
 
 /**
  * Sets/returns player's opened [MineMenu].
@@ -445,13 +453,6 @@ fun Player.clearAllInventory(resetHoldSlot: Boolean = true) {
 }
 
 /**
- * Clear the player's title and subtitle.
- */
-fun Player.clearTitle() {
-    this.resetTitle()
-}
-
-/**
  * Clear the player's action bar.
  */
 fun Player.clearActionBar() {
@@ -476,3 +477,23 @@ fun Player.actionBar(msg: String) {
 fun Player.title(title: String?, subtitle: String?, fadeIn: Int = 10, stay: Int = 20 * 2, fadeOut: Int = 10) {
     this.sendTitle(title, subtitle, fadeIn, stay, fadeOut)
 }
+
+/**
+ * Don't use it, this is not a usefull good method.
+ *
+ * @return the chunk blocks.
+ * @see Chunk
+ * @see Block
+ */
+val Chunk.blocks: List<Block>
+    get() {
+        val blocs = mutableListOf<Block>()
+        for (x in 0..15) {
+            for (y in 0..255) {
+                for (z in 0..15) {
+                    blocs.add(this.getBlock(x, y, z))
+                }
+            }
+        }
+        return blocs
+    }

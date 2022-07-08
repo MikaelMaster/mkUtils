@@ -1,8 +1,8 @@
 package com.mikael.mkutils.bungee
 
-import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.mkplugin.MKPlugin
+import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.toTextComponent
@@ -23,6 +23,7 @@ import net.eduard.api.lib.modules.Copyable
 import net.eduard.api.lib.storage.StorageAPI
 import net.md_5.bungee.api.ProxyServer
 import net.md_5.bungee.api.plugin.Plugin
+import net.md_5.bungee.api.scheduler.ScheduledTask
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -32,6 +33,7 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         lateinit var instance: UtilsBungeeMain
     }
 
+    var redisVerifier: ScheduledTask? = null
     lateinit var mySqlUpdaterTimer: Thread
     lateinit var manager: UtilsManager
     lateinit var config: Config
@@ -46,7 +48,6 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         manager = resolvePut(UtilsManager()) // Needs to be here
 
         log("§eStarting loading...")
-        MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
         HybridTypes // Hybrid types loading
         store<RedisConnectionData>()
 
@@ -80,20 +81,23 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
             if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
             RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
             log("§aConnected to Redis server!")
-            ProxyServer.getInstance().scheduler.schedule(
+            redisVerifier = ProxyServer.getInstance().scheduler.schedule(
                 this, {
                     if (!RedisAPI.testPing()) {
+                        log("§cThe connection with redis server is broken. :c")
                         try {
-                            RedisAPI.connectClient(true)
+                            log("§eTrying to reconnect to redis server...")
+                            RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client
+                            RedisAPI.connectClient(true) // Reconnect redis client
+                            log("§aReconnected to redis server! (Some data may not have been synced)")
                         } catch (ex: Exception) {
-                            ex.printStackTrace()
-                            error("Cannot reconnect to Redis server")
+                            error("Cannot reconnect to redis server: ${ex.stackTrace}")
                         }
                     }
                 }, 1, 1, TimeUnit.SECONDS
             )
         } else {
-            log("§cThe Redis is not active on the config file. Some plugins and MK systems may not work correctly.")
+            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
         }
 
         // BungeeAPI
@@ -103,12 +107,12 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         BungeeGeneralListener().register(this)
 
         val endTime = System.currentTimeMillis() - start
-        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)")
+        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
 
         // MySQL queue updater timer
         if (utilsmanager.sqlManager.hasConnection()) {
             mySqlUpdaterTimer = thread {
-                while (true) {
+                while (utilsmanager.sqlManager.hasConnection()) {
                     utilsmanager.sqlManager.runChanges()
                     Thread.sleep(1000)
                 }
@@ -118,11 +122,10 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
 
     override fun onDisable() {
         log("§eUnloading systems...")
-        mySqlUpdaterTimer.stop()
+        redisVerifier?.cancel()
         utilsmanager.dbManager.closeConnection()
         RedisAPI.finishConnection()
-        MKPluginSystem.loadedMKPlugins.remove(this@UtilsBungeeMain)
-        log("§cPlugin unloaded!")
+        log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsBungeeMain)
     }
 
     private fun storage() {

@@ -1,17 +1,17 @@
 package com.mikael.mkutils.spigot
 
-import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.mkplugin.MKPlugin
+import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.craftapi.CraftAPI
-import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
+import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
-import com.mikael.mkutils.spigot.api.storable.MineItemStorable
+import com.mikael.mkutils.spigot.api.toPaperComponent
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask
@@ -37,6 +37,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitTask
 import java.io.File
 import java.text.SimpleDateFormat
 import kotlin.concurrent.thread
@@ -46,6 +47,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         lateinit var instance: UtilsMain
     }
 
+    var redisVerifier: BukkitTask? = null
     lateinit var mySqlUpdaterTimer: Thread
     lateinit var manager: UtilsManager
     lateinit var config: Config
@@ -113,17 +115,21 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
             log("§aConnected to Redis server!")
 
-            syncTimer(20, 20) {
+            redisVerifier = syncTimer(20, 20) {
                 if (!RedisAPI.testPing()) {
+                    log("§cThe connection with redis server is broken. :c")
                     try {
-                        RedisAPI.connectClient(true)
+                        log("§eTrying to reconnect to redis server...")
+                        RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client
+                        RedisAPI.connectClient(true) // Reconnect redis client
+                        log("§aReconnected to redis server! (Some data may not have been synced)")
                     } catch (ex: Exception) {
-                        ex.printStackTrace()
+                        error("§cCannot reconnect to redis server: ${ex.stackTrace}")
                     }
                 }
             }
         } else {
-            log("§cThe Redis is not active on the config file. Some plugins and MK systems may not work correctly.")
+            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
         }
 
         log("§eLoading systems...")
@@ -146,7 +152,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             // MySQL queue updater timer
             if (utilsmanager.sqlManager.hasConnection()) {
                 mySqlUpdaterTimer = thread {
-                    while (true) {
+                    while (utilsmanager.sqlManager.hasConnection()) {
                         utilsmanager.sqlManager.runChanges()
                         Thread.sleep(1000)
                     }
@@ -164,6 +170,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         }
         log("§eUnloading systems...")
         BungeeAPI.controller.unregister()
+        redisVerifier?.cancel()
         utilsmanager.dbManager.closeConnection()
         RedisAPI.finishConnection()
         CraftAPI.onDisable() // Disable CraftAPI

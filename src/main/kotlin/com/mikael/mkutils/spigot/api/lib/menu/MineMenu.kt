@@ -8,7 +8,6 @@ import com.mikael.mkutils.spigot.api.openedMineMenu
 import com.mikael.mkutils.spigot.api.openedMineMenuPage
 import com.mikael.mkutils.spigot.api.player
 import com.mikael.mkutils.spigot.api.soundClick
-import net.eduard.api.lib.modules.Mine
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player

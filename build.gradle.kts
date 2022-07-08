@@ -14,6 +14,7 @@ java.targetCompatibility = JavaVersion.VERSION_17
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://papermc.io/repo/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("https://jitpack.io/")
@@ -21,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
     compileOnly("net.md-5:bungeecord-api:1.16-R0.3")
     compileOnly(files("libs/spigot-1.17.1.jar"))
     api(kotlin("stdlib"))

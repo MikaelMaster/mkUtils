@@ -6,7 +6,7 @@ import org.bukkit.block.BlockFace
 import org.bukkit.entity.Entity
 import org.bukkit.plugin.Plugin
 import org.bukkit.util.Vector
-import java.util.EnumMap
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.roundToInt
