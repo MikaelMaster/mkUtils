@@ -449,7 +449,7 @@ inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing
 fun Player.clearAllInventory(resetHoldSlot: Boolean = true) {
     if (resetHoldSlot) this.inventory.heldItemSlot = 0
     this.inventory.clear()
-    this.inventory.setArmorContents(arrayOf()) // Clear armors
+    this.inventory.armorContents = arrayOf() // Clear armors
 }
 
 /**
