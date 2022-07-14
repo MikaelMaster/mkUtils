@@ -1,4 +1,4 @@
-package com.mikael.mkutils.spigot.api.craftapi
+package com.mikael.mkutils.spigot.api.lib.craft
 
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
@@ -33,7 +33,7 @@ class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
 
             fixed = true
             icon = MineItem(Material.RED_DYE).name("§cClose")
-            click = {
+            click = click@{
                 player.soundClick()
                 player.closeInventory()
             }
@@ -47,7 +47,7 @@ class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
                 icon = MineItem(Material.COBWEB)
                     .name("§cEmpty")
                     .lore("§7None custom craft have been created yet.")
-                click = {
+                click = click@{
                     player.soundPickup()
                 }
             }
@@ -59,12 +59,11 @@ class CustomRecipesMenu : MineMenu("Custom Crafts", 6) {
 
                 icon = MineItem(recipe.result.clone())
                     .lore(
+                        "§8ID: ${recipe.keyName}",
                         "",
-                        "§8Custom craft ID: ${recipe.keyName}",
-                        "",
-                        "§aClick to see the recipe of this item."
+                        "§eClick to see the recipe of this item."
                     )
-                click = {
+                click = click@{
                     player.soundClick()
                     SeeCustomRecipeMenu.getMenu(recipe).open(player)
                 }

@@ -1,4 +1,4 @@
-package com.mikael.mkutils.spigot.api.craftapi
+package com.mikael.mkutils.spigot.api.lib.craft
 
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineItem
@@ -36,7 +36,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             icon = MineItem(Material.ARROW)
                 .name("§cBack")
                 .lore("§7To Custom Crafts.")
-            click = {
+            click = click@{
                 player.soundClick()
                 CustomRecipesMenu.instance.open(player)
             }
@@ -48,7 +48,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(7, 3)
 
             icon = recipe.result.clone()
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -59,7 +59,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(3, 2)
 
             icon = recipe.slot1Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -68,7 +68,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
 
             fixed = true
             icon = recipe.slot2Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -76,7 +76,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(5, 2)
 
             icon = recipe.slot3Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -84,7 +84,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(3, 3)
 
             icon = recipe.slot4Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -93,7 +93,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(4, 3)
 
             icon = recipe.slot5Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -102,7 +102,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
 
             fixed = true
             icon = recipe.slot6Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -110,7 +110,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(3, 4)
 
             icon = recipe.slot7Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -118,7 +118,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(4, 4)
 
             icon = recipe.slot8Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }
@@ -126,7 +126,7 @@ class SeeCustomRecipeMenu(var recipe: CraftRecipe) : MineMenu("Custom Craft Reci
             setPosition(5, 4)
 
             icon = recipe.slot9Item ?: MineItem(Material.AIR).name(" ")
-            click = {
+            click = click@{
                 player.soundPickup()
             }
         }

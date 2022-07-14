@@ -10,10 +10,7 @@ import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatMessageType
-import org.bukkit.Chunk
-import org.bukkit.Location
-import org.bukkit.Sound
-import org.bukkit.World
+import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable
 import org.bukkit.block.data.Waterlogged
@@ -269,6 +266,16 @@ fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): Li
         }
     }
     return holos
+}
+
+/**
+ * @param allBody if is to spawn the 'blood' particle on player Head AND Foot. False = 'blood' particle JUST on player Head.
+ */
+fun Player.bloodEffect(allBody: Boolean = false) {
+    this.world.playEffect(this.eyeLocation, Effect.STEP_SOUND, Material.REDSTONE_BLOCK)
+    if (allBody) {
+        this.world.playEffect(this.location, Effect.STEP_SOUND, Material.REDSTONE_BLOCK)
+    }
 }
 
 fun Player.soundNo(volume: Float = 2f, speed: Float = 1f) {

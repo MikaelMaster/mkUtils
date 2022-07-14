@@ -7,11 +7,10 @@ import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.utilsmanager
-import com.mikael.mkutils.spigot.api.craftapi.CraftAPI
+import com.mikael.mkutils.spigot.api.lib.craft.CraftAPI
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
-import com.mikael.mkutils.spigot.api.toPaperComponent
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask

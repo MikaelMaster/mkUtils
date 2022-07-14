@@ -1,4 +1,4 @@
-package com.mikael.mkutils.spigot.api.craftapi
+package com.mikael.mkutils.spigot.api.lib.craft
 
 import org.bukkit.inventory.ItemStack
 
