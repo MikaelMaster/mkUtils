@@ -351,6 +351,7 @@ object RedisAPI {
      * @return True if the event sent was completed. Otherwise, false.
      * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
+    @Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.", ReplaceWith("client!!.publish(channel, message)"))
     fun sendEvent(channel: String, message: String): Boolean {
         if (!isInitialized()) error("Cannot send an event message to a null redis server")
         return try {

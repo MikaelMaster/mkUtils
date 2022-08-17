@@ -1,8 +1,8 @@
 package com.mikael.mkutils.spigot.api.lib.craft
 
+import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineItem
-import net.eduard.api.lib.plugin.IPluginInstance
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.RecipeChoice.ExactChoice
 import org.bukkit.inventory.ShapedRecipe
@@ -11,7 +11,14 @@ object CraftAPI {
 
     private val recipes = mutableListOf<CraftRecipe>()
 
-    fun registerCustomRecipe(plugin: IPluginInstance, recipe: CraftRecipe): Boolean {
+    /**
+     * Use it to create a new Custom Craft.
+     *
+     * @param plugin the [MKPlugin] that wants to register this Custom Craft.
+     * @param recipe the [CraftRecipe] for this Custom Craft.
+     * @return True if the new Custom Craft has been successfully registered. Otherwise, false.
+     */
+    fun registerCustomRecipe(plugin: MKPlugin, recipe: CraftRecipe): Boolean {
         val craft = ShapedRecipe(
             NamespacedKey.fromString("${plugin.systemName.lowercase()}:${recipe.keyName.lowercase()}")!!,
             MineItem(recipe.result)
@@ -39,6 +46,9 @@ object CraftAPI {
         return true
     }
 
+    /**
+     * @return the registered [CraftRecipe]s.
+     */
     fun getCustomRecipes(): MutableList<CraftRecipe> {
         return recipes
     }

@@ -18,11 +18,8 @@ import java.util.*
 
 class MineItem(item: ItemStack) : ItemStack(item) {
 
-    constructor(material: Material) : this(ItemStack(material))
-    constructor(material: Material, amount: Int) : this(ItemStack(material, amount))
-
     /**
-     * MineItem util class v1.0
+     * MineItem util class
      *
      * This class represents an [ItemStack].
      *
@@ -34,6 +31,9 @@ class MineItem(item: ItemStack) : ItemStack(item) {
      * @author Mikael
      * @see ItemStack
      */
+
+    constructor(material: Material) : this(ItemStack(material))
+    constructor(material: Material, amount: Int) : this(ItemStack(material, amount))
 
     fun name(name: String? = null): MineItem {
         val meta = this.itemMeta ?: return this

@@ -95,6 +95,7 @@ fun ItemStack.toMineItem(): MineItem {
     return MineItem(this)
 }
 
+@Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.")
 fun Entity.setInvincible(isInvincible: Boolean): Entity {
     if (isInvincible) {
         GeneralListener.instance.invincibleEntities.add(this)
@@ -208,6 +209,7 @@ fun <T : ItemStack> T.notBreakable(isUnbreakable: Boolean = true): T {
 /**
  * Extra of see also: (loc: Location, vararg lines: String?): ArmorStand
  *
+ * @param line the line string to spawn. If you give as null, the line will be empty.
  * @see World.newHologram
  */
 fun Location.newHologram(line: String?): ArmorStand {
@@ -218,6 +220,8 @@ fun Location.newHologram(line: String?): ArmorStand {
 /**
  * Extra of see also: (loc: Location, toDown: Boolean, vararg lines: String?): List<ArmorStand>
  *
+ * @param toDown if the holograms should be spawned from up to down, or from down to up.
+ * @param lines the list of lines string to spawn. If you give as null, the line will be empty.
  * @see World.newHologram
  */
 fun Location.newHologram(toDown: Boolean, vararg lines: String?): List<ArmorStand> {
@@ -228,6 +232,8 @@ fun Location.newHologram(toDown: Boolean, vararg lines: String?): List<ArmorStan
 /**
  * Spawn a new hologram with just one line.
  *
+ * @param loc the location to spawn the holograms.
+ * @param line the line string to spawn. If you give as null, the line will be empty.
  * @return The spawned [ArmorStand] that compose this hologram.
  */
 fun World.newHologram(loc: Location, line: String?): ArmorStand {
@@ -251,6 +257,9 @@ fun World.newHologram(loc: Location, line: String?): ArmorStand {
 /**
  * Spawn a new hologram with multiple lines.
  *
+ * @param loc the location to spawn the holograms.
+ * @param toDown if the holograms should be spawned from up to down, or from down to up.
+ * @param lines the list of lines string to spawn. If you give as null, the line will be empty.
  * @return A [List] of all spawned [ArmorStand] that compose the hologram.
  */
 fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): List<ArmorStand> {
@@ -269,49 +278,96 @@ fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): Li
 }
 
 /**
+ * Runs an 'blood' effect on a [Player]'s body.
+ *
  * @param allBody if is to spawn the 'blood' particle on player Head AND Foot. False = 'blood' particle JUST on player Head.
+ * @return True if the player is not dead, and the effect was played. Otherwise, false.
  */
-fun Player.bloodEffect(allBody: Boolean = false) {
+fun Player.bloodEffect(allBody: Boolean = false): Boolean {
+    if (this.isDead) return false
     this.world.playEffect(this.eyeLocation, Effect.STEP_SOUND, Material.REDSTONE_BLOCK)
     if (allBody) {
         this.world.playEffect(this.location, Effect.STEP_SOUND, Material.REDSTONE_BLOCK)
     }
+    return true
 }
 
+/**
+ * Plays the sound [Sound.ENTITY_VILLAGER_NO] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundNo(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_VILLAGER_NO, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.ENTITY_VILLAGER_YES] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundYes(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_VILLAGER_YES, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.BLOCK_LEVER_CLICK] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundClick(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.BLOCK_LEVER_CLICK, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.ENTITY_ITEM_PICKUP] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundPickup(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_ITEM_PICKUP, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.BLOCK_NOTE_BLOCK_PLING] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundPling(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.BLOCK_NOTE_BLOCK_PLING, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.ENTITY_EXPERIENCE_ORB_PICKUP] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.notify(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, volume, speed)
 }
 
+/**
+ * Plays the sound [Sound.ENTITY_ENDERMAN_TELEPORT] to the given [Player].
+ *
+ * @param volume the Float as the sound volume to play to the player.
+ * @param speed the Float as the sound volume to play to the player.
+ */
 fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_ENDERMAN_TELEPORT, volume, speed)
 }
 
 /**
- * Gives an item to a player if there is an available slot on his inventory.
- * If there is no empty slot, the ItemStack will be dropped on the world, using the player's eye location.
+ * Gives an item to a [Player] if there is an available slot on his inventory.
+ * If there is no empty slot, the [ItemStack] will be dropped on the world, using the [Player]'s eye location.
  *
- * @param item the ItemStack to be added on player's inventory. (It will be dropped if the inventory is full)
- * @return A dropped [Item] if the invetory is full. Otherwise, false.
+ * @param item the [ItemStack] to be added on [Player]'s [Inventory]. (It will be dropped if the inventory is full)
+ * @return A dropped [Item] if the [Player]'s [Inventory] is full. Otherwise, null.
  */
 fun Player.giveItem(item: ItemStack): Item? {
     val slot = this.inventory.contents.withIndex().firstOrNull { it.value == null }
@@ -321,51 +377,78 @@ fun Player.giveItem(item: ItemStack): Item? {
 }
 
 /**
+ * Gives an Armor Set to a player if all his equipment slots is available.
+ * If there is no equipment slots available, the [ItemStack]s will be dropped on the world, using the given [Player]'s eye location.
+ *
+ * Tip: To know if all the armor has been succesfully set on the player, just verify if the returned [List] with [Item]s is empty.
+ *
+ * @return A list of dropped [Item]s with the Armors that cannot be given to the [Player].
+ */
+fun Player.giveArmorSet(
+    helmet: ItemStack?,
+    chestplate: ItemStack?,
+    leggings: ItemStack?,
+    boots: ItemStack?
+): List<Item> {
+    val droppedArmor = mutableListOf<Item>()
+    if (helmet != null) {
+        if (this.inventory.helmet != null) {
+            droppedArmor.add(this.world.dropItemNaturally(this.eyeLocation, helmet))
+        } else {
+            this.inventory.helmet = helmet
+        }
+    }
+    if (chestplate != null) {
+        if (this.inventory.chestplate != null) {
+            droppedArmor.add(this.world.dropItemNaturally(this.eyeLocation, chestplate))
+        } else {
+            this.inventory.chestplate = helmet
+        }
+    }
+    if (leggings != null) {
+        if (this.inventory.leggings != null) {
+            droppedArmor.add(this.world.dropItemNaturally(this.eyeLocation, leggings))
+        } else {
+            this.inventory.leggings = helmet
+        }
+    }
+    if (boots != null) {
+        if (this.inventory.boots != null) {
+            droppedArmor.add(this.world.dropItemNaturally(this.eyeLocation, boots))
+        } else {
+            this.inventory.boots = helmet
+        }
+    }
+    return droppedArmor
+}
+
+/**
  * Runs a loading animation to the player using the main thread (sync), while execute the given [thing] using async.
  *
- * @param loadingMsg the message to show with the loading animation. By default, the msg is 'Loading...' and the color is yellow (§e).
- * @param small if True, the loading animation will NOT show  the [loadingMsg], and will play the animation on the actionBar. If false, the animation will be played using titles.
- * @param thing the block code to run using try catch and the load animation.
+ * @param thing the block code to run using async, try catch and the load animation.
  */
-inline fun Player.asyncLoading(
-    loadingMsg: String? = "§eLoading...",
-    small: Boolean = true,
-    crossinline thing: (() -> Unit)
-) {
+inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
     var step = 0
     val runnable = UtilsMain.instance.syncTimer(0, 2) {
-        if (!small) {
-            when (step) {
-                0 -> {
-                    this.title("§a∎§7∎∎∎∎", "§e${loadingMsg}", 0, 10, 0)
-                }
-                1 -> {
-                    this.title("§7∎§a∎§7∎∎∎", "§e${loadingMsg}", 0, 10, 0)
-                }
-                2 -> {
-                    this.title("§7∎∎§a∎§7∎∎", "§e${loadingMsg}", 0, 10, 0)
-                }
-                3 -> {
-                    this.title("§7∎∎∎∎§a∎", "§e${loadingMsg}", 0, 10, 0)
-                }
+        when (step) {
+            0 -> {
+                this.actionBar("§a∎§7∎∎∎∎")
             }
-        } else {
-            when (step) {
-                0 -> {
-                    this.actionBar("§a∎§7∎∎∎∎")
-                }
-                1 -> {
-                    this.actionBar("§7∎§a∎§7∎∎∎")
-                }
-                2 -> {
-                    this.actionBar("§7∎∎§a∎§7∎∎")
-                }
-                3 -> {
-                    this.actionBar("§7∎∎∎§a∎§7∎")
-                }
-                4 -> {
-                    this.actionBar("§7∎∎∎∎§a∎")
-                }
+
+            1 -> {
+                this.actionBar("§7∎§a∎§7∎∎∎")
+            }
+
+            2 -> {
+                this.actionBar("§7∎∎§a∎§7∎∎")
+            }
+
+            3 -> {
+                this.actionBar("§7∎∎∎§a∎§7∎")
+            }
+
+            4 -> {
+                this.actionBar("§7∎∎∎∎§a∎")
             }
         }
         if (step == 3) step = 0 else step++
@@ -377,13 +460,10 @@ inline fun Player.asyncLoading(
             ex.printStackTrace()
             this.soundNo()
             this.sendMessage("§cAn internal error occurred while executing something to you.")
-        }
-        UtilsMain.instance.syncTask {
-            runnable.cancel()
-            if (!small) {
-                this.title("§a§l∎∎∎∎∎", "§7${loadingMsg} §a§lCompleted.", 5, 20, 5)
-            } else {
-                this.clearActionBar()
+        } finally {
+            UtilsMain.instance.syncTask {
+                runnable.cancel()
+                this.actionBar("§a∎∎∎∎∎")
             }
         }
     }
@@ -394,7 +474,7 @@ inline fun Player.asyncLoading(
  * the player will receive a message telling he that an error has been occured.
  *
  * @param thing the block code to run using try catch.
- * @return True if the block code was runned with no problems. Otherwise, false.
+ * @return True if the block code was run with no problems. Otherwise, false.
  */
 inline fun Player.runBlock(crossinline thing: (() -> Unit)): Boolean {
     return try {
@@ -434,7 +514,7 @@ inline fun Player.runCommand(crossinline thing: (() -> Unit)): Boolean {
  * @param sendLoading if is to send a 'Loading...' message before try to load the Unit using async.
  * @param thing the block code to run using async and try catch.
  */
-@Deprecated("Deprecated since mkUtils v1.1; Use Player.runCommand instead, intering an Async Block")
+@Deprecated("Deprecated since mkUtils v1.1; Use Player.runCommand instead, inside an Async Block.")
 inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing: () -> (Unit)) {
     if (sendLoading) this.sendMessage("§eLoading...")
     UtilsMain.instance.asyncTask {
@@ -475,9 +555,8 @@ fun Player.actionBar(msg: String) {
     this.spigot().sendMessage(ChatMessageType.ACTION_BAR, msg.toTextComponent())
 }
 
-
 /**
- * Send a title and subtitle to the player.
+ * Send a [title] and [subtitle] to the [Player].
  *
  * @see Player.sendTitle
  */
@@ -486,7 +565,7 @@ fun Player.title(title: String?, subtitle: String?, fadeIn: Int = 10, stay: Int 
 }
 
 /**
- * Don't use it, this is not a usefull good method.
+ * Don't use it, this is not a usefully good method.
  *
  * @return the chunk blocks.
  * @see Chunk

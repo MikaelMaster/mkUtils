@@ -10,6 +10,7 @@ class ExampleMenuCommand : CommandManager("mkutilsexamplemenu") {
     init {
         usage = "/mkutilsexamplemenu"
         permission = "mkutils.menu.cmd.exaple"
+        permissionMessage = "§cYou don't have permission to use this command."
     }
 
     override fun playerCommand(player: Player, args: Array<String>) {

@@ -21,15 +21,15 @@ import org.bukkit.inventory.Inventory
 open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
 
     /**
-     * MineMenu util class v1.0
+     * MineMenu util class
      *
      * This class extends a [MineListener].
      *
      * You can learn how to use it on [com.mikael.mkutils.spigot.api.lib.menu.example].
-     * There, you'll find examples about how to do all different types of menu available.
+     * There, you'll find examples about how to create all different types of menu available.
      *
-     * To create/invoke it you can use:
-     * - MineMenu(title: [String], lineAmount: [Int])
+     * To create a new MineMenu, extends it in a Class. As the example below:
+     * - class TestMenu : MineMenu(title: [String], lineAmount: [Int]) { *class code* }
      *
      * @author Mikael
      * @see MineListener
