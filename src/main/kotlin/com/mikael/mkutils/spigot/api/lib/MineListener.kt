@@ -13,7 +13,7 @@ open class MineListener : Listener {
     /**
      * MineListener util class
      *
-     * This class represents an [Listener].
+     * This class represents a [Listener].
      *
      * To create a new MineListener, extends it in a Class. As the example below:
      * - class TestListener : MineListener() { *class code* }

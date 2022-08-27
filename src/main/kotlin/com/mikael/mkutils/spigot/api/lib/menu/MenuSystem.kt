@@ -11,7 +11,8 @@ object MenuSystem {
     val openedPage = mutableMapOf<Player, MenuPage>()
 
     fun isMenuOpen(menu: MineMenu, player: Player): Boolean {
-        return player.openedMineMenu != null && player.openedMineMenu!! == menu
+        val openedMenu = player.openedMineMenu
+        return openedMenu != null && openedMenu == menu
     }
 
 }

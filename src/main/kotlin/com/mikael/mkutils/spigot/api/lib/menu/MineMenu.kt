@@ -15,7 +15,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
-import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.Inventory
 
 open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
@@ -67,6 +66,9 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     private val pages = mutableMapOf<Player, MutableList<MenuPage>>()
     private val inventories = mutableMapOf<Player, MutableMap<Int, Inventory>>()
 
+    /**
+     * @return A [List] of all [MenuButton]s inside this menu for each holder (player).
+     */
     val buttons: Map<Player, List<MenuButton>>
         get() {
             val allButtons = mutableMapOf<Player, MutableList<MenuButton>>()
@@ -81,13 +83,30 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
             return allButtons
         }
 
-    open fun registerMenu(plugin: MKPlugin) {
+    /**
+     * Register this menu. Must be used on your plugin onEnable.
+     *
+     * @param plugin your plugin instance that is a [MKPlugin].
+     * @return True if the menu is successfully registered. Otherwise, false.
+     */
+    open fun registerMenu(plugin: MKPlugin): Boolean {
         if (lineAmount < 1 || lineAmount > 6) error("menu lineAmount must be between 1 and 6")
         this.registerListener(plugin)
         MenuSystem.registeredMenus.add(this)
+        return true
     }
 
-    open fun unregisterMenu() {
+    /**
+     * Unregister this menu. Must be used on your plugin onDisable.
+     *
+     * You only need use this if needed.
+     * For example: If you want that your plugin have support to /reload.
+     *
+     * Please note that all players seeing this menu will have it closed.
+     *
+     * @return True if the menu is successfully unregistered. Otherwise, false.
+     */
+    open fun unregisterMenu(): Boolean {
         MenuSystem.openedMenu.keys.removeIf {// Remove menu, pages and close it to players
             val menu = it.openedMineMenu!!
             if (menu == this) it.closeInventory()
@@ -98,23 +117,38 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         }
         this.unregisterListener()
         MenuSystem.registeredMenus.remove(this)
+        return true
     }
 
+    /**
+     * @param player the [Player] to get opened [MineMenu] [MenuPage] ID.
+     * @return The opened page ID, null if the player don't have a [MineMenu] opened.
+     */
     fun getPageOpened(player: Player): Int? {
         return player.openedMineMenuPage?.pageId
     }
 
+    /**
+     * Remove all buttons from the menu. You should use it only inside [update] fun before register buttons.
+     *
+     * @param player the player (holder) of the menu to remove the buttons.
+     */
     fun removeAllButtons(player: Player) {
-        if (!pages.containsKey(player)) return
-        for (page in pages[player]!!) {
-            page.buttons.clear()
-        }
+        pages[player]?.let { pages -> pages.forEach { it.buttons.clear() } }
     }
 
+    /**
+     * Here all buttons and menu code will be done.
+     *
+     * @param player the player that will see this menu. All menus are per-player.
+     */
     open fun update(player: Player) {
         // Do something
     }
 
+    /**
+     * Internal; Private.
+     */
     private fun invokePageNextAndBackButtons(page: MenuPage) {
         val inv = page.inventory ?: error("page inventory can't be null")
         if (page.hasBackPage) {
@@ -125,7 +159,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                 icon = backPageButtonItem.clone().name(
                     backPageButtonItem.getName().replace("%page%", "${page.backPage!!.pageId}", true)
                 )
-                click = {
+                click = click@{
                     val player = it.player
                     player.soundClick()
                     player.openInventory(backPageInv)
@@ -146,7 +180,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                 icon = nextPageButtonItem.clone().name(
                     nextPageButtonItem.getName().replace("%page%", "${page.nextPage!!.pageId}", true)
                 )
-                click = {
+                click = click@{
                     val player = it.player
                     player.soundClick()
                     player.openInventory(nextPageInv)
@@ -161,13 +195,34 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         }
     }
 
+    /**
+     * Opens the menu for a player using the [MenuPage] ID 1.
+     *
+     * @param player the player to open the menu.
+     * @return the [Inventory] builder of the [MenuPage].
+     */
+    fun open(player: Player): Inventory {
+        return open(player, 1)
+    }
+
+    /**
+     * Opens the menu for a player using the given [pageToOpen].
+     *
+     * @param player the player to open the menu.
+     * @param pageToOpen the [MenuPage] ID to open to the given [player].
+     * @return the [Inventory] builder of the [MenuPage].
+     * @throws IllegalStateException if the [lineAmount] is not between 1 and 6.
+     * @throws IllegalStateException if the menu [isAutoAlignItems] is false, and the [pageToOpen] is not 1.
+     * @throws IllegalStateException if the menu [autoAlignSkipLines] contains any Int different from 1, 2, 3, 4, 5 and 6.
+     * @throws IllegalStateException if the menu [autoAlignSkipLines] is higher than the menu [lineAmount].
+     */
     fun open(player: Player, pageToOpen: Int): Inventory {
         update(player) // Rebuilds menu
         if (lineAmount < 1 || lineAmount > 6) error("menu lineAmount must be between 1 and 6")
         if (!isAutoAlignItems && pageToOpen != 1) error("can't open a non-autoAlignItems menu with a page different than 1")
         // if (pageToOpen > 1 && inventories[pageToOpen] == null) error("the required page $pageToOpen is not registered; pages size: ${pages.size}") // legacy
         autoAlignSkipLines.forEach {
-            if (it != 1 && it != 2 && it != 3 && it != 4 && it != 5 && it != 6) error("menu autoAlignSkipLines can't contains any int different than 1, 2, 3, 4, 5 and 6")
+            if (it != 1 && it != 2 && it != 3 && it != 4 && it != 5 && it != 6) error("menu autoAlignSkipLines can't contains any Int different from 1, 2, 3, 4, 5 and 6")
             if (it > lineAmount) error("this menu just have $lineAmount lines, can't apply rule to skip line $it")
         }
 
@@ -293,10 +348,13 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         }
     }
 
-    fun open(player: Player): Inventory {
-        return open(player, 1)
-    }
-
+    /**
+     * Creates a new button inside the menu.
+     *
+     * @param buttonName the button name. Can be null.
+     * @param setup the builder.
+     * @return the built [MenuButton].
+     */
     inline fun button(buttonName: String? = null, crossinline setup: (MenuButton.() -> Unit)): MenuButton {
         val newButton = if (buttonName != null) MenuButton(buttonName) else MenuButton()
         newButton.setup()
@@ -304,13 +362,12 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         return newButton
     }
 
-// Listeners - Start
     /**
-     * [PlayerQuitEvent] is not used anymore, [onInvClose] already clear all lists on quit.
+     * Listeners section.
      */
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    fun onInvClose(e: InventoryCloseEvent) {
+    fun onInvClose(e: InventoryCloseEvent) { // PlayerQuitEvent is not used anymore, onInvClose already clear all lists on quit.
         if (e.player !is Player) return
         val player = e.player as Player
         val playerPages = pages[player] ?: return
@@ -331,6 +388,4 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         if (player.openedMineMenu == null) return
         e.isCancelled = true
     }
-// Listeners - End
-
 }

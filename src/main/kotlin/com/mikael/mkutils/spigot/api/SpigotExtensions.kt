@@ -428,6 +428,7 @@ fun Player.giveArmorSet(
  * @param thing the block code to run using async, try catch and the load animation.
  */
 inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
+    val runStart = System.currentTimeMillis()
     var step = 0
     val runnable = UtilsMain.instance.syncTimer(0, 2) {
         when (step) {
@@ -463,7 +464,7 @@ inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
         } finally {
             UtilsMain.instance.syncTask {
                 runnable.cancel()
-                this.actionBar("§a∎∎∎∎∎")
+                this.actionBar("§a∎∎∎∎∎ §8${System.currentTimeMillis() - runStart} ms")
             }
         }
     }
