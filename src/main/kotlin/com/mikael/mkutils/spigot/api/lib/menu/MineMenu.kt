@@ -200,6 +200,8 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
      *
      * @param player the player to open the menu.
      * @return the [Inventory] builder of the [MenuPage].
+     * @throws IllegalStateException if the menu [autoAlignSkipLines] contains any Int different from 1, 2, 3, 4, 5 and 6.
+     * @throws IllegalStateException if the menu [autoAlignSkipLines] is higher than the menu [lineAmount].
      */
     fun open(player: Player): Inventory {
         return open(player, 1)

@@ -237,6 +237,7 @@ fun Location.newHologram(toDown: Boolean, vararg lines: String?): List<ArmorStan
  * @return The spawned [ArmorStand] that compose this hologram.
  */
 fun World.newHologram(loc: Location, line: String?): ArmorStand {
+    loc.chunk.isForceLoaded = true // this is needed; without it, the chunk will unload
     if (!loc.chunk.isLoaded) {
         loc.chunk.load(true)
     }
@@ -370,9 +371,17 @@ fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
  * @return A dropped [Item] if the [Player]'s [Inventory] is full. Otherwise, null.
  */
 fun Player.giveItem(item: ItemStack): Item? {
-    val slot = this.inventory.contents.withIndex().firstOrNull { it.value == null }
+    invSlot@ for (invItem in this.inventory.contents) {
+        if (invItem == null) continue@invSlot
+        if (item.isSimilar(invItem) && invItem.amount < 64) {
+            invItem.amount++
+            return null
+        }
+    }
+    val slot = this.inventory.contents.withIndex().firstOrNull { it.value == null && it.index < 36 }
         ?: return this.world.dropItemNaturally(this.eyeLocation, item)
     this.inventory.setItem(slot.index, item)
+    this.updateInventory()
     return null
 }
 
@@ -380,7 +389,7 @@ fun Player.giveItem(item: ItemStack): Item? {
  * Gives an Armor Set to a player if all his equipment slots is available.
  * If there is no equipment slots available, the [ItemStack]s will be dropped on the world, using the given [Player]'s eye location.
  *
- * Tip: To know if all the armor has been succesfully set on the player, just verify if the returned [List] with [Item]s is empty.
+ * Tip: To know if all the armor has been successfully set on the player, just verify if the returned [List] with [Item]s is empty.
  *
  * @return A list of dropped [Item]s with the Armors that cannot be given to the [Player].
  */

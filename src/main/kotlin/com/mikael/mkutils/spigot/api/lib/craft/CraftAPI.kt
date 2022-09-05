@@ -24,10 +24,10 @@ object CraftAPI {
             MineItem(recipe.result)
         )
         if (recipe.type == CraftRecipeType.PLAYER_CRAFT) {
-            if (recipe.recipeItems.size != 4) error("Cannot register a custom recipe using PLAYER_CRAFT type with recipe items size different of 4")
+            if (recipe.recipeItems.size != 4) error("Cannot register a custom recipe using PLAYER_CRAFT type with recipe items size different than 4")
             craft.shape("12", "34")
         } else {
-            if (recipe.recipeItems.size != 9) error("Cannot register a custom recipe using CRAFTING_TABLE type with recipe items size different of 9")
+            if (recipe.recipeItems.size != 9) error("Cannot register a custom recipe using CRAFTING_TABLE type with recipe items size different than 9")
             craft.shape("123", "456", "789")
         }
         recipe.slot1Item?.let { craft.setIngredient('1', ExactChoice(it)) }
