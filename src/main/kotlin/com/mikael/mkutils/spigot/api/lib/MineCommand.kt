@@ -69,7 +69,7 @@ open class MineCommand(command: String, vararg aliases: String) : CommandExecuto
                 sender.sendMessage(permissionMessage)
                 return true
             }
-            val finalArgs = args?.toList() ?: listOf()
+            val finalArgs: List<String> = args?.toList() ?: listOf()
             if (sender is Player) {
                 playerCommand(sender, finalArgs)
             } else {

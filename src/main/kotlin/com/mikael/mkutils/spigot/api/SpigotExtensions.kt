@@ -544,7 +544,9 @@ inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing
  * @param resetHoldSlot if is to set the player's hold item slot to 0.
  */
 fun Player.clearAllInventory(resetHoldSlot: Boolean = true) {
-    if (resetHoldSlot) this.inventory.heldItemSlot = 0
+    if (resetHoldSlot) {
+        this.inventory.heldItemSlot = 0
+    }
     this.inventory.clear()
     this.inventory.armorContents = arrayOf() // Clear armors
 }
@@ -575,9 +577,12 @@ fun Player.title(title: String?, subtitle: String?, fadeIn: Int = 10, stay: Int 
 }
 
 /**
- * Don't use it, this is not a usefully good method.
+ * Get all blocks inside the given chunk.
  *
- * @return the chunk blocks.
+ * Use with moderation.
+ * May lag the server with many usages at the same time.
+ *
+ * @return all the chunk [Block]s.
  * @see Chunk
  * @see Block
  */
