@@ -461,7 +461,7 @@ inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
                 this.actionBar("§7∎∎∎∎§a∎")
             }
         }
-        if (step == 3) step = 0 else step++
+        if (step == 4) step = 0 else step++
     }
     UtilsMain.instance.asyncTask {
         try {

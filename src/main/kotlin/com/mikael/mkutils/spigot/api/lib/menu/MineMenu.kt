@@ -45,7 +45,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     var autoAlignSkipLines: List<Int> = emptyList()
     private val autoAlignPerPage: Int
         get() {
-            var amount = 54
+            var amount = lineAmount * 9
             if (!isAutoAlignItems) return amount
             for (n in 1..autoAlignSkipLines.size) amount -= 9
             if (autoAlignIgnoreColumns) amount -= lineAmount.minus(autoAlignSkipLines.size).times(2)
@@ -54,10 +54,10 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
     // Auto Align options - End
 
     // Back and Skip Page buttons options - Start
-    var backPageButtonPosX = 1
+    var backPageButtonPosX = 0
     var backPageButtonPosY = 1
     var backPageButtonItem = MineItem(Material.ARROW).name("§aPage %page%")
-    var nextPageButtonPosX = 9
+    var nextPageButtonPosX = 8
     var nextPageButtonPosY = 1
     var nextPageButtonItem = MineItem(Material.ARROW).name("§aPage %page%")
     // Back and Skip Page buttons options - End
@@ -374,8 +374,10 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
         val player = e.player as Player
         val playerPages = pages[player] ?: return
         if (playerPages.firstOrNull { e.inventory == it.inventory!! } == null) return
-        pages.remove(player)
-        inventories.remove(player)
+        if (playerPages.any { it.nextPage != null && it.nextPage!!.inventory == player.openInventory }) {
+            pages.remove(player)
+            inventories.remove(player)
+        }
         player.openedMineMenu = null // MenuSystem.openedMenu.remove(player)
         player.openedMineMenuPage = null // MenuSystem.openedPage.remove(player)
     }

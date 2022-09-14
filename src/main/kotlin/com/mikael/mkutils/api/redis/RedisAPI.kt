@@ -1,8 +1,10 @@
 package com.mikael.mkutils.api.redis
 
 import net.eduard.api.lib.plugin.IPluginInstance
+import net.eduard.api.server.hasAPI
 import redis.clients.jedis.Connection
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
 
 object RedisAPI {
 
@@ -351,7 +353,8 @@ object RedisAPI {
      * @return True if the event sent was completed. Otherwise, false.
      * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
      */
-    @Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.", ReplaceWith("client!!.publish(channel, message)"))
+    // (Un)deprecated since mkUtils v1.1-final.
+    // @Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.", ReplaceWith("client!!.publish(channel, message)"))
     fun sendEvent(channel: String, message: String): Boolean {
         if (!isInitialized()) error("Cannot send an event message to a null redis server")
         return try {

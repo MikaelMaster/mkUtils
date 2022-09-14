@@ -1,12 +1,10 @@
 package com.mikael.mkutils.spigot
 
-import com.mikael.mkutils.api.UtilsManager
-import com.mikael.mkutils.api.formatEN
+import com.mikael.mkutils.api.*
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
-import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.lib.craft.CraftAPI
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
@@ -116,14 +114,17 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
             redisVerifier = syncTimer(20, 20) {
                 if (!RedisAPI.testPing()) {
-                    log("§cThe connection with redis server is broken. :c")
+                    log("§cThe connection with redis server is broken. Disconnecting players...")
+                    for (playerLoop in Mine.getPlayers()) {
+                        playerLoop.kickPlayer("§c[mkUtils] An internal error occurred. :c")
+                    }
                     try {
                         log("§eTrying to reconnect to redis server...")
                         RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client
                         RedisAPI.connectClient(true) // Reconnect redis client
                         log("§aReconnected to redis server! (Some data may not have been synced)")
                     } catch (ex: Exception) {
-                        error("§cCannot reconnect to redis server: ${ex.stackTrace}")
+                        error("Cannot reconnect to redis server: ${ex.stackTrace}")
                     }
                 }
             }
@@ -192,10 +193,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             Bukkit.getOnlinePlayers().size.formatEN()
         }
         Mine.addReplacer("mkbungeeapi_players") {
-            if (!config.getBoolean("BungeeAPI.isEnabled")) {
+            try {
+                Redis.client!!.get("mkUtils:mkbungeeapi:playercount").toInt()
+            } catch (ex: Exception) {
                 -1
-            } else {
-                RedisAPI.client!!.get("mkUtils:mkbungeeapi:playercount").toInt().formatEN()
             }
         }
     }

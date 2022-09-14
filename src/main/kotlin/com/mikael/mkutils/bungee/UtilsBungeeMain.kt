@@ -84,7 +84,10 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
             redisVerifier = ProxyServer.getInstance().scheduler.schedule(
                 this, {
                     if (!RedisAPI.testPing()) {
-                        log("§cThe connection with redis server is broken. :c")
+                        log("§cThe connection with redis server is broken. Disconnecting players...")
+                        for (playerLoop in ProxyServer.getInstance().players) {
+                            playerLoop.disconnect("§c[mkUtilsProxy] An internal error occurred. :c".toTextComponent())
+                        }
                         try {
                             log("§eTrying to reconnect to redis server...")
                             RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client

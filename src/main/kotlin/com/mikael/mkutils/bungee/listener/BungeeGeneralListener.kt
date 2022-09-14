@@ -7,7 +7,6 @@ import net.md_5.bungee.api.connection.ProxiedPlayer
 import net.md_5.bungee.api.event.ChatEvent
 import net.md_5.bungee.api.event.PlayerDisconnectEvent
 import net.md_5.bungee.api.event.PostLoginEvent
-import net.md_5.bungee.api.event.ServerConnectedEvent
 import net.md_5.bungee.api.plugin.Listener
 import net.md_5.bungee.event.EventHandler
 
@@ -25,20 +24,21 @@ class BungeeGeneralListener : Listener {
     fun onPlayerJoin(e: PostLoginEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
         RedisAPI.updateCounter("mkUtils", "mkbungeeapi:playercount", 1)
-        RedisAPI.client!!.set("mkUtils:bungee:players:${e.player.name.lowercase()}", "null")
+        // RedisAPI.client!!.set("mkUtils:bungee:players:${e.player.name.lowercase()}", "null")
     }
 
     @EventHandler
     fun onPlayerQuit(e: PlayerDisconnectEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
         RedisAPI.updateCounter("mkUtils", "mkbungeeapi:playercount", -1)
-        RedisAPI.client!!.del("mkUtils:bungee:players:${e.player.name.lowercase()}")
+        // RedisAPI.client!!.del("mkUtils:bungee:players:${e.player.name.lowercase()}")
     }
 
+    /*
     @EventHandler
     fun onServerChange(e: ServerConnectedEvent) {
         if (!RedisAPI.isInitialized() || !RedisAPI.useToSyncBungeePlayers) return
         RedisAPI.client!!.set("mkUtils:bungee:players:${e.player.name.lowercase()}", e.server.info.name)
     }
-
+     */
 }

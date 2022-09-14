@@ -28,8 +28,8 @@ dependencies {
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
     api("redis.clients:jedis:4.2.3")
-    api("org.slf4j:slf4j-api:1.7.36")
-    api("org.slf4j:slf4j-log4j12:1.7.36")
+    api("org.slf4j:slf4j-api:2.0.0")
+    api("org.slf4j:slf4j-log4j12:2.0.0")
     api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))
 }
 
