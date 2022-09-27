@@ -161,7 +161,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                 )
                 click = click@{
                     val player = it.player
-                    player.soundClick()
+                    player.soundClick(2f, 2f)
                     player.openInventory(backPageInv)
                 }
             }
@@ -182,7 +182,7 @@ open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
                 )
                 click = click@{
                     val player = it.player
-                    player.soundClick()
+                    player.soundClick(2f, 2f)
                     player.openInventory(nextPageInv)
                 }
             }

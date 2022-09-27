@@ -1,10 +1,14 @@
 package com.mikael.mkutils.api.redis
 
+import redis.clients.jedis.Jedis
+
 class RedisConnectionData(
 
     /**
-     * Data to create a redis client (Jedis) using the [RedisAPI].
+     * Data to create a redis client ([Jedis]) using the [RedisAPI].
      *
+     * @see Jedis
+     * @see RedisAPI.usedRedisConnectionData
      * @see RedisAPI
      */
 

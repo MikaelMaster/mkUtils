@@ -15,4 +15,14 @@ object MenuSystem {
         return openedMenu != null && openedMenu == menu
     }
 
+    fun onEnable() {
+        onDisable() // Same as onDisable
+    }
+
+    fun onDisable() {
+        registeredMenus.forEach { it.unregisterMenu() }
+        openedMenu.clear()
+        openedPage.clear()
+    }
+
 }

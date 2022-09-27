@@ -4,6 +4,7 @@ import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
+import com.mikael.mkutils.api.redis.RedisBungeeAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.api.utilsmanager
@@ -26,43 +27,88 @@ import net.md_5.bungee.api.plugin.Plugin
 import net.md_5.bungee.api.scheduler.ScheduledTask
 import java.io.File
 import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 
 class UtilsBungeeMain : Plugin(), MKPlugin {
     companion object {
         lateinit var instance: UtilsBungeeMain
     }
 
-    var redisVerifier: ScheduledTask? = null
-    lateinit var mySqlUpdaterTimer: Thread
+    private var mySqlQueueUpdater: ScheduledTask? = null
     lateinit var manager: UtilsManager
     lateinit var config: Config
 
     init {
-        Hybrid.instance = BungeeServer
+        Hybrid.instance = BungeeServer // EduardAPI
     }
 
     override fun onEnable() {
         instance = this@UtilsBungeeMain
         val start = System.currentTimeMillis()
-        manager = resolvePut(UtilsManager()) // Needs to be here
 
         log("§eStarting loading...")
-        HybridTypes // Hybrid types loading
+        manager = resolvePut(UtilsManager())
+        prepareStorageAPI() // EduardAPI
+        HybridTypes // {static} # Hybrid types - Load
         store<RedisConnectionData>()
 
-        log("§eloading directories...")
-        storage()
+        log("§eLoading directories...")
         config = Config(this, "config.yml")
         config.saveConfig()
-        reloadConfig() // x1
-        reloadConfig() // x2
-        StorageAPI.updateReferences()
+        reloadConfigs() // x1
+        reloadConfigs() // x2
+        StorageAPI.updateReferences() // EduardAPI
 
         log("§eLoading extras...")
-        reload()
+        prepareBasics()
 
-        DBManager.setDebug(false)
+        log("§eLoading APIs...")
+        BungeeAPI.bungee.register(this) // EduardAPI
+
+        log("§eLoading systems...")
+        prepareMySQL(); prepareRedis()
+
+        BungeeGeneralListener().register(this)
+
+        val endTime = System.currentTimeMillis() - start
+        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
+
+        // MySQL queue updater timer
+        if (utilsmanager.sqlManager.hasConnection()) {
+            mySqlQueueUpdater = ProxyServer.getInstance().scheduler.schedule(this, queueUpdater@{
+                if (!utilsmanager.sqlManager.hasConnection()) return@queueUpdater
+                utilsmanager.sqlManager.runChanges()
+            }, 1, 1, TimeUnit.SECONDS)
+        }
+    }
+
+    override fun onDisable() {
+        log("§eUnloading systems...")
+        BungeeAPI.controller.unregister() // EduardAPI
+        RedisBungeeAPI.proxyServerTask?.cancel()
+        RedisAPI.finishConnection()
+        mySqlQueueUpdater?.cancel()
+        utilsmanager.dbManager.closeConnection()
+        log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsBungeeMain)
+    }
+
+    private fun prepareRedis() {
+        RedisAPI.managerData = config["Redis", RedisConnectionData::class.java]
+        if (RedisAPI.managerData.isEnabled) {
+            log("§eConnecting to Redis server...")
+            RedisAPI.createClient(RedisAPI.managerData)
+            RedisAPI.connectClient()
+            if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
+            RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
+            if (RedisAPI.useToSyncBungeePlayers) {
+                RedisBungeeAPI.proxyServerOnEnable()
+            }
+            log("§aConnected to Redis server!")
+        } else {
+            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
+        }
+    }
+
+    private fun prepareMySQL() {
         manager.sqlManager = SQLManager(config["Database", DBManager::class.java])
         if (manager.sqlManager.dbManager.isEnabled) {
             log("§eConnecting to MySQL database...")
@@ -72,71 +118,14 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         } else {
             log("§cThe MySQL is not active on the config file. Some plugins and MK systems may not work correctly.")
         }
-
-        RedisAPI.managerData = config["Redis", RedisConnectionData::class.java]
-        if (RedisAPI.managerData.isEnabled) {
-            log("§eConnecting to Redis server...")
-            RedisAPI.createClient(RedisAPI.managerData)
-            RedisAPI.connectClient()
-            if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
-            RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
-            log("§aConnected to Redis server!")
-            redisVerifier = ProxyServer.getInstance().scheduler.schedule(
-                this, {
-                    if (!RedisAPI.testPing()) {
-                        log("§cThe connection with redis server is broken. Disconnecting players...")
-                        for (playerLoop in ProxyServer.getInstance().players) {
-                            playerLoop.disconnect("§c[mkUtilsProxy] An internal error occurred. :c".toTextComponent())
-                        }
-                        try {
-                            log("§eTrying to reconnect to redis server...")
-                            RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client
-                            RedisAPI.connectClient(true) // Reconnect redis client
-                            log("§aReconnected to redis server! (Some data may not have been synced)")
-                        } catch (ex: Exception) {
-                            error("Cannot reconnect to redis server: ${ex.stackTrace}")
-                        }
-                    }
-                }, 1, 1, TimeUnit.SECONDS
-            )
-        } else {
-            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
-        }
-
-        // BungeeAPI
-        BungeeAPI.bungee.register(this)
-
-        log("§eLoading systems...")
-        BungeeGeneralListener().register(this)
-
-        val endTime = System.currentTimeMillis() - start
-        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
-
-        // MySQL queue updater timer
-        if (utilsmanager.sqlManager.hasConnection()) {
-            mySqlUpdaterTimer = thread {
-                while (utilsmanager.sqlManager.hasConnection()) {
-                    utilsmanager.sqlManager.runChanges()
-                    Thread.sleep(1000)
-                }
-            }
-        }
     }
 
-    override fun onDisable() {
-        log("§eUnloading systems...")
-        redisVerifier?.cancel()
-        utilsmanager.dbManager.closeConnection()
-        RedisAPI.finishConnection()
-        log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsBungeeMain)
+    private fun prepareStorageAPI() {
+        StorageAPI.setDebug(false) // EduardAPI
+        StorageAPI.startGson() // EduardAPI
     }
 
-    private fun storage() {
-        StorageAPI.setDebug(false)
-        StorageAPI.startGson()
-    }
-
-    private fun reloadConfig() {
+    private fun reloadConfigs() {
         config.add(
             "Database",
             DBManager(),
@@ -152,10 +141,11 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         config.saveConfig()
     }
 
-    private fun reload() {
-        Config.isDebug = false
-        Copyable.setDebug(false)
-        Command.MESSAGE_PERMISSION = "§cYou don't have permission to use this command."
+    private fun prepareBasics() {
+        DBManager.setDebug(false) // EduardAPI
+        Config.isDebug = false // EduardAPI
+        Copyable.setDebug(false) // EduardAPI
+        Command.MESSAGE_PERMISSION = "§cYou don't have permission to use this command." // EduardAPI
     }
 
     fun log(msg: String) {

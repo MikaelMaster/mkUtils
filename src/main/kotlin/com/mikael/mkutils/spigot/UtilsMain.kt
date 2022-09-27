@@ -4,8 +4,10 @@ import com.mikael.mkutils.api.*
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
+import com.mikael.mkutils.api.redis.RedisBungeeAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.spigot.api.lib.craft.CraftAPI
+import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
@@ -37,111 +39,68 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.io.File
 import java.text.SimpleDateFormat
-import kotlin.concurrent.thread
 
 class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     companion object {
         lateinit var instance: UtilsMain
     }
 
-    var redisVerifier: BukkitTask? = null
-    lateinit var mySqlUpdaterTimer: Thread
+    private var mySqlQueueUpdater: BukkitTask? = null
     lateinit var manager: UtilsManager
     lateinit var config: Config
-    lateinit var messages: Config
-    var serverEnabled = false
 
     init {
-        Hybrid.instance = BukkitServer
+        Hybrid.instance = BukkitServer // EduardAPI
     }
 
     override fun onEnable() {
         instance = this@UtilsMain
         val start = System.currentTimeMillis()
 
-        log("§eStarting loading...")
-        HybridTypes // Hybrid types loading
-        BukkitTypes.register() // Bukkit types loading
+        log("§eLoading basics...")
+        manager = resolvePut(UtilsManager())
+        prepareStorageAPI() // EduardAPI
+        HybridTypes // {static} # Hybrid types - Load
+        BukkitTypes.register() // Bukkit types - Load
         store<RedisConnectionData>()
 
-        Extra.FORMAT_DATE = SimpleDateFormat("MM/dd/yyyy")
-        Extra.FORMAT_DATETIME = SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+        Extra.FORMAT_DATE = SimpleDateFormat("MM/dd/yyyy") // EduardAPI
+        Extra.FORMAT_DATETIME = SimpleDateFormat("MM/dd/yyyy HH:mm:ss") // EduardAPI
 
         log("§eLoading directories...")
-        storage()
         config = Config(this@UtilsMain, "config.yml")
         config.saveConfig()
         reloadConfigs() // x1
         reloadConfigs() // x2
-        messages = Config(this@UtilsMain, "messages.yml")
-        messages.saveConfig()
-        reloadMessages() // x1
-        reloadMessages() // x2
-        StorageAPI.updateReferences()
+        StorageAPI.updateReferences() // EduardAPI
 
-        log("§eLoading replacers...")
-        replacers()
         log("§eLoading extras...")
-        reload()
-        log("§eStarting tasks...")
-        tasks()
+        preparePlaceholders(); prepareBasics(); prepareTasks()
+
+        log("§eLoading APIs...")
+        MenuSystem.onEnable()
+        CraftAPI.onEnable()
 
         // BukkitBungeeAPI
-        BukkitBungeeAPI.register(this)
-        BukkitBungeeAPI.requestCurrentServer()
-        BungeeAPI.bukkit.register(this)
-
-        manager = resolvePut(UtilsManager())
-        DBManager.setDebug(false)
-        manager.sqlManager = SQLManager(config["Database", DBManager::class.java])
-        if (manager.sqlManager.dbManager.isEnabled) {
-            log("§eConnecting to MySQL database...")
-            utilsmanager.dbManager.openConnection()
-            if (!utilsmanager.sqlManager.hasConnection()) error("Cannot connect to MySQL database")
-            log("§aConnected to MySQL database!")
-        } else {
-            log("§cThe MySQL is not active on the config file. Some plugins and MK systems may not work correctly.")
-        }
-
-        RedisAPI.managerData = config["Redis", RedisConnectionData::class.java]
-        if (RedisAPI.managerData.isEnabled) {
-            log("§eConnecting to Redis server...")
-            RedisAPI.createClient(RedisAPI.managerData)
-            RedisAPI.connectClient()
-            if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
-            RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
-            log("§aConnected to Redis server!")
-
-            redisVerifier = syncTimer(20, 20) {
-                if (!RedisAPI.testPing()) {
-                    log("§cThe connection with redis server is broken. Disconnecting players...")
-                    for (playerLoop in Mine.getPlayers()) {
-                        playerLoop.kickPlayer("§c[mkUtils] An internal error occurred. :c")
-                    }
-                    try {
-                        log("§eTrying to reconnect to redis server...")
-                        RedisAPI.createClient(RedisAPI.managerData) // Recreate a redis client
-                        RedisAPI.connectClient(true) // Reconnect redis client
-                        log("§aReconnected to redis server! (Some data may not have been synced)")
-                    } catch (ex: Exception) {
-                        error("Cannot reconnect to redis server: ${ex.stackTrace}")
-                    }
-                }
-            }
-        } else {
-            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
-        }
+        BukkitBungeeAPI.register(this) // EduardAPI
+        BukkitBungeeAPI.requestCurrentServer() // EduardAPI
+        BungeeAPI.bukkit.register(this) // EduardAPI
 
         log("§eLoading systems...")
+        prepareMySQL(); prepareRedis()
+
         GeneralListener().registerListener(this)
 
         val endTime = System.currentTimeMillis() - start
         log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
 
         syncDelay(20) {
-            MineReflect.getVersion() // Prints the server version
-            serverEnabled = true
-            log("§aThe server has been marked as available!")
+            log("§aPreparing MineReflect...")
+            try {
+                MineReflect.getVersion() // Prints the server (reflect) version
+            } catch (ex: Exception) {
+                Mine.console("§b[MineReflect] §cThe current version is not supported. Some custom features will not work, mkUtils will run with default Paper ones.")
+            }
 
             // Show MK Plugins
             log("§aLoaded MK Plugins:")
@@ -151,11 +110,9 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
             // MySQL queue updater timer
             if (utilsmanager.sqlManager.hasConnection()) {
-                mySqlUpdaterTimer = thread {
-                    while (utilsmanager.sqlManager.hasConnection()) {
-                        utilsmanager.sqlManager.runChanges()
-                        Thread.sleep(1000)
-                    }
+                mySqlQueueUpdater = asyncTimer(20, 20) {
+                    if (!utilsmanager.sqlManager.hasConnection()) return@asyncTimer
+                    utilsmanager.sqlManager.runChanges()
                 }
             }
         }
@@ -168,71 +125,105 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
                 playerLoop.kickPlayer(config.getString("CustomKick.customKickMessage"))
             }
         }
+
+        log("§eUnloading APIs...")
+        CraftAPI.onDisable()
+        MenuSystem.onDisable()
+
         log("§eUnloading systems...")
-        BungeeAPI.controller.unregister()
-        redisVerifier?.cancel()
-        utilsmanager.dbManager.closeConnection()
+        BungeeAPI.controller.unregister() // EduardAPI
+        RedisBungeeAPI.bukkitServerTask?.cancel()
         RedisAPI.finishConnection()
-        CraftAPI.onDisable() // Disable CraftAPI
+        mySqlQueueUpdater?.cancel()
+        utilsmanager.dbManager.closeConnection()
+
         log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsMain)
     }
 
-    private fun storage() {
-        StorageAPI.setDebug(false)
-        BukkitStorables.load()
+    private fun prepareRedis() {
+        RedisAPI.managerData = config["Redis", RedisConnectionData::class.java]
+        if (RedisAPI.managerData.isEnabled) {
+            log("§eConnecting to Redis server...")
+            RedisAPI.createClient(RedisAPI.managerData)
+            RedisAPI.connectClient()
+            if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
+            RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
+            if (RedisAPI.useToSyncBungeePlayers) {
+                RedisBungeeAPI.bukkitServerOnEnable()
+            }
+            log("§aConnected to Redis server!")
+        } else {
+            log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
+        }
+    }
 
-        // StorableTypes
+    private fun prepareMySQL() {
+        manager.sqlManager = SQLManager(config["Database", DBManager::class.java])
+        if (manager.sqlManager.dbManager.isEnabled) {
+            log("§eConnecting to MySQL database...")
+            utilsmanager.dbManager.openConnection()
+            if (!utilsmanager.sqlManager.hasConnection()) error("Cannot connect to MySQL database")
+            log("§aConnected to MySQL database!")
+        } else {
+            log("§cThe MySQL is not active on the config file. Some plugins and MK systems may not work correctly.")
+        }
+    }
+
+    private fun prepareStorageAPI() {
+        StorageAPI.setDebug(false) // EduardAPI
+        BukkitStorables.load() // EduardAPI
+
+        // Storable Custom Objects
         StorageAPI.registerStorable(Location::class.java, LocationStorable())
         // StorageAPI.registerStorable(MineItemStorable::class.java, MineItemStorable()) // not finished yet
 
-        StorageAPI.startGson()
+        StorageAPI.startGson() // EduardAPI
     }
 
-    private fun replacers() {
+    private fun preparePlaceholders() { // mkUtils default placeholders
         Mine.addReplacer("mkutils_players") {
             Bukkit.getOnlinePlayers().size.formatEN()
         }
         Mine.addReplacer("mkbungeeapi_players") {
             try {
-                Redis.client!!.get("mkUtils:mkbungeeapi:playercount").toInt()
+                RedisBungeeAPI.getGlobalPlayerAmount()
             } catch (ex: Exception) {
                 -1
             }
         }
     }
 
-    private fun reload() {
-        // Menu System - 'Debug' Mode
+    private fun prepareBasics() {
+        // mkUtils Menu System - Debug Mode
         if (config.getBoolean("MenuAPI.debugMode")) {
             SinglePageExampleMenu().registerMenu(this)
             ExampleMenuCommand().registerCommand(this)
         }
-        Menu.isDebug = false // another debug type; legacy
-
-        Config.isDebug = false
-        Hologram.debug = false
-        CommandManager.debugEnabled = false
-        CommandManager.DEFAULT_USAGE_PREFIX = "§cUsage: "
-        CommandManager.DEFAULT_DESCRIPTION = "Description not defined."
-        Copyable.setDebug(false)
-        BukkitBungeeAPI.setDebuging(false)
-        DisplayBoard.colorFix = true
-        DisplayBoard.nameLimit = 40
-        DisplayBoard.prefixLimit = 16
-        DisplayBoard.suffixLimit = 16
-        CraftAPI.onEnable() // Enable CraftAPI
+        Menu.isDebug = false // EduardAPI legacy Menu System - Debug Mode
+        DBManager.setDebug(false) // EduardAPI
+        Config.isDebug = false // EduardAPI
+        Hologram.debug = false // EduardAPI
+        CommandManager.debugEnabled = false // EduardAPI
+        CommandManager.DEFAULT_USAGE_PREFIX = "§cUsage: " // EduardAPI
+        CommandManager.DEFAULT_DESCRIPTION = "Description not defined." // EduardAPI
+        Copyable.setDebug(false) // EduardAPI
+        BukkitBungeeAPI.setDebuging(false) // EduardAPI
+        DisplayBoard.colorFix = true // EduardAPI
+        DisplayBoard.nameLimit = 40 // EduardAPI
+        DisplayBoard.prefixLimit = 16 // EduardAPI
+        DisplayBoard.suffixLimit = 16 // EduardAPI
     }
 
-    private fun tasks() {
-        resetScoreboards()
-        BukkitReplacers()
+    private fun prepareTasks() {
+        resetScoreboards() // EduardAPI
+        BukkitReplacers() // EduardAPI
         if (config.getBoolean("MenuAPI.autoUpdateMenus")) {
             AutoUpdateMenusTask().syncTimer()
         }
         PlayerTargetAtPlayerTask().syncTimer()
     }
 
-    private fun resetScoreboards() {
+    private fun resetScoreboards() { // EduardAPI
         for (team in Mine.getMainScoreboard().teams) {
             team.unregister()
         }
@@ -252,71 +243,48 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             "Database",
             DBManager(),
             "Config of MySQL database.",
-            "All the plugins that use the mkUtils will use this MySQL database."
+            "All plugins that use mkUtils DB will use this MySQL database."
         )
         config.add(
             "Redis",
             RedisConnectionData(),
             "Config of Redis server.",
-            "All the plugins that use the mkUtils will use this Redis server."
+            "All plugins that use mkUtils RedisAPI will use this Redis server."
         )
         config.add(
             "MenuAPI.autoUpdateMenus",
             true,
-            "Whether to update the open menus.",
+            "If true, mkUtils MenuAPI menus will auto update while open.",
         )
         config.add(
             "MenuAPI.autoUpdateTicks",
-            60,
-            "Time to refresh players opened menus.",
-            "Values less than 20 will cause lag. 20 ticks = 1s."
+            60L,
+            "Time to update players opened mkUtils MenuAPI menus.",
+            "Values less than 20 may cause lag. 20 ticks = 1s."
         )
         config.add(
             "MenuAPI.debugMode",
             false,
-            "If true, example/test menus will be registered",
-            "and menu test commands will be registered too."
+            "If true, example/test menus and test menus commands will be registered.",
+            "Also, some mkUtils MenuAPI actions will be logged to console."
         )
         config.add(
-            "BungeeAPI.isEnabled", false, "Whether to activate the BungeeAPI."
-        )
-        config.add(
-            "BungeeAPI.useRedisCache", false,
-            "Whether to use Redis to improve the server performance.",
-            "You CAN'T active this if you're not using a Redis server on mkUtils."
-        )
-        config.add(
-            "BungeeAPI.currentServerName", "server",
-            "The name of this spigot server before bungee.",
-            "Put the server name as it is in the bungee config."
-        )
-        config.add(
-            "BungeeAPI.currentServerMaxAmount",
-            100,
-            "Maximum number of players on this spigot server.",
+            "CraftAPI.customCraftsMenuAndCommand",
+            false,
+            "If true, mkUtils CraftAPI Custom Crafts Menu will be registered.",
+            "Also, the command '/customcrafts' will be registered too. It can be used to acces the menu."
         )
         config.add(
             "CustomKick.isEnabled",
             true,
-            "Whether to kick players on server shutdown."
+            "If true, mkUtils will kick all online players with a custom message."
         )
         config.add(
             "CustomKick.customKickMessage",
             "§cRestarting, we'll back soon!",
-            "Kick message sent to players on server shutdown."
-        )
-        config.add(
-            "CustomCrafts.customCraftsMenuAndCommand",
-            false,
-            "Enable/disable the command and menus to",
-            "show mkUtils registered custom item crafts."
+            "Kick message used to kick players on server shutdown."
         )
         config.saveConfig()
-    }
-
-    private fun reloadMessages() {
-        messages.add("busy-server-msg", "§cThe server is busy. Try again in a few seconds.")
-        messages.saveConfig()
     }
 
     fun log(msg: String) {

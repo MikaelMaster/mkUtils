@@ -57,7 +57,7 @@ object CraftAPI {
         recipes.clear()
 
         // See Custom Crafts
-        if (UtilsMain.instance.config.getBoolean("CustomCrafts.customCraftsMenuAndCommand")) {
+        if (UtilsMain.instance.config.getBoolean("CraftAPI.customCraftsMenuAndCommand")) {
             CustomCraftsCommand().registerCommand(UtilsMain.instance)
             CustomRecipesMenu().registerMenu(UtilsMain.instance)
         }

@@ -10,6 +10,7 @@ import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatMessageType
+import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable
@@ -20,7 +21,10 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
 /**
- * @return a Paper [Component] with the given [String].
+ * Transforms a [String]? into a [Component].
+ *
+ * @return a Paper [Component] with the given [String], or empty if null is given.
+ * @see Component
  */
 fun String?.toPaperComponent(): Component {
     return if (this != null) {
@@ -34,6 +38,7 @@ fun String?.toPaperComponent(): Component {
  * Sets/returns player's opened [MineMenu].
  *
  * @return Player's opened [MineMenu]?.
+ * @see MineMenu
  */
 var Player.openedMineMenu: MineMenu?
     get() = MenuSystem.openedMenu[this]
@@ -49,6 +54,7 @@ var Player.openedMineMenu: MineMenu?
  * Sets/returns player's opened [MenuPage].
  *
  * @return Player's opened [MenuPage]?.
+ * @see MenuPage
  */
 var Player.openedMineMenuPage: MenuPage?
     get() = MenuSystem.openedPage[this]
@@ -62,6 +68,7 @@ var Player.openedMineMenuPage: MenuPage?
 
 /**
  * @return The player that clicked the menu. ([InventoryClickEvent.getWhoClicked] as [Player])
+ * @see InventoryClickEvent.getWhoClicked
  */
 val InventoryClickEvent.player get() = this.whoClicked as Player
 
@@ -81,20 +88,31 @@ fun <T : ItemStack> T.addLore(vararg lines: String): T {
 }
 
 /**
+ * Deprecated in favor of new mkUtils [MineItem], a new class to manage and use [ItemStack]s.
+ *
  * @return A new [ItemBuilder] cloning the given [ItemStack].
+ * @see ItemBuilder
  */
-@Deprecated("Deprecated since mkUtils v1.1; Use MineItem instead ItemBuilder.", ReplaceWith("this.toMineItem()"))
+@Deprecated("Deprecated since mkUtils v1.1", ReplaceWith("ItemBuilder(this)", "net.eduard.api.lib.game.ItemBuilder"))
 fun ItemStack.toItemBuilder(): ItemBuilder {
     return ItemBuilder(this)
 }
 
 /**
  * @return A new [MineItem] cloning the given [ItemStack].
+ * @see MineItem
  */
 fun ItemStack.toMineItem(): MineItem {
     return MineItem(this)
 }
 
+/**
+ * Deprecated because some entities don't work well with this function, and may throw errors.
+ * You should use your own method instead.
+ *
+ * @return the given [Entity], now invincible.
+ * @see GeneralListener.invincibleEntities
+ */
 @Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.")
 fun Entity.setInvincible(isInvincible: Boolean): Entity {
     if (isInvincible) {
@@ -134,7 +152,7 @@ fun Player.hasAmountOfItemOnInv(needed: ItemStack, neededAmount: Int): Boolean {
 }
 
 /**
- * @return True if the inventory has the needed amount of the needed ItemStack.
+ * @return True if the given [Inventory] has the needed amount of the needed [ItemStack].
  */
 fun Inventory.hasAmountOfItem(needed: ItemStack, neededAmount: Int): Boolean {
     if (this.isEmpty) return false
@@ -155,6 +173,8 @@ fun Inventory.hasAmountOfItem(needed: ItemStack, neededAmount: Int): Boolean {
  *
  * @param isWatterlogged if this block is to be waterlogged or not.
  * @return The new waterlogged (or not) [Block].
+ * @see Block
+ * @see Waterlogged
  */
 fun Block.waterlogged(isWatterlogged: Boolean): Block {
     val blockData = this.blockData
@@ -171,6 +191,8 @@ fun Block.waterlogged(isWatterlogged: Boolean): Block {
  *
  * @param isOpened if this block is opened or not.
  * @return The new opened (or not) [Block].
+ * @see Block
+ * @see Openable
  */
 fun Block.opened(isOpened: Boolean): Block {
     val blockData = this.blockData
@@ -235,6 +257,7 @@ fun Location.newHologram(toDown: Boolean, vararg lines: String?): List<ArmorStan
  * @param loc the location to spawn the holograms.
  * @param line the line string to spawn. If you give as null, the line will be empty.
  * @return The spawned [ArmorStand] that compose this hologram.
+ * @see ArmorStand
  */
 fun World.newHologram(loc: Location, line: String?): ArmorStand {
     loc.chunk.isForceLoaded = true // this is needed; without it, the chunk will unload
@@ -262,6 +285,7 @@ fun World.newHologram(loc: Location, line: String?): ArmorStand {
  * @param toDown if the holograms should be spawned from up to down, or from down to up.
  * @param lines the list of lines string to spawn. If you give as null, the line will be empty.
  * @return A [List] of all spawned [ArmorStand] that compose the hologram.
+ * @see ArmorStand
  */
 fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): List<ArmorStand> {
     val holos = mutableListOf<ArmorStand>()
@@ -283,6 +307,7 @@ fun World.newHologram(loc: Location, toDown: Boolean, vararg lines: String?): Li
  *
  * @param allBody if is to spawn the 'blood' particle on player Head AND Foot. False = 'blood' particle JUST on player Head.
  * @return True if the player is not dead, and the effect was played. Otherwise, false.
+ * @see World.playEffect
  */
 fun Player.bloodEffect(allBody: Boolean = false): Boolean {
     if (this.isDead) return false
@@ -298,6 +323,7 @@ fun Player.bloodEffect(allBody: Boolean = false): Boolean {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundNo(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_VILLAGER_NO, volume, speed)
@@ -308,6 +334,7 @@ fun Player.soundNo(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundYes(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_VILLAGER_YES, volume, speed)
@@ -318,6 +345,7 @@ fun Player.soundYes(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundClick(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.BLOCK_LEVER_CLICK, volume, speed)
@@ -328,6 +356,7 @@ fun Player.soundClick(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundPickup(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_ITEM_PICKUP, volume, speed)
@@ -338,6 +367,7 @@ fun Player.soundPickup(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundPling(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.BLOCK_NOTE_BLOCK_PLING, volume, speed)
@@ -348,6 +378,7 @@ fun Player.soundPling(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.notify(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, volume, speed)
@@ -358,6 +389,7 @@ fun Player.notify(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param volume the Float as the sound volume to play to the player.
  * @param speed the Float as the sound volume to play to the player.
+ * @see Player.playSound
  */
 fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
     this.playSound(this.location, Sound.ENTITY_ENDERMAN_TELEPORT, volume, speed)
@@ -369,6 +401,7 @@ fun Player.soundTP(volume: Float = 2f, speed: Float = 1f) {
  *
  * @param item the [ItemStack] to be added on [Player]'s [Inventory]. (It will be dropped if the inventory is full)
  * @return A dropped [Item] if the [Player]'s [Inventory] is full. Otherwise, null.
+ * @see Item
  */
 fun Player.giveItem(item: ItemStack): Item? {
     invSlot@ for (invItem in this.inventory.contents) {
@@ -392,6 +425,7 @@ fun Player.giveItem(item: ItemStack): Item? {
  * Tip: To know if all the armor has been successfully set on the player, just verify if the returned [List] with [Item]s is empty.
  *
  * @return A list of dropped [Item]s with the Armors that cannot be given to the [Player].
+ * @see Item
  */
 fun Player.giveArmorSet(
     helmet: ItemStack?,
@@ -436,7 +470,10 @@ fun Player.giveArmorSet(
  *
  * @param thing the block code to run using async, try catch and the load animation.
  */
-inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
+inline fun Player.asyncLoading(
+    errorMessage: String = "§cAn internal error occurred while executing something to you.",
+    crossinline thing: (() -> Unit)
+) {
     val runStart = System.currentTimeMillis()
     var step = 0
     val runnable = UtilsMain.instance.syncTimer(0, 2) {
@@ -469,7 +506,7 @@ inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
         } catch (ex: Exception) {
             ex.printStackTrace()
             this.soundNo()
-            this.sendMessage("§cAn internal error occurred while executing something to you.")
+            this.sendMessage(errorMessage)
         } finally {
             UtilsMain.instance.syncTask {
                 runnable.cancel()
@@ -481,38 +518,44 @@ inline fun Player.asyncLoading(crossinline thing: (() -> Unit)) {
 
 /**
  * Use it anywhere to run the Unit using a try catch. If any error occur,
- * the player will receive a message telling he that an error has been occured.
+ * the given [Player] will receive a message saying that an error occurred..
  *
  * @param thing the block code to run using try catch.
- * @return True if the block code was run with no problems. Otherwise, false.
+ * @return True if the block code was run with no errors. Otherwise, false.
  */
-inline fun Player.runBlock(crossinline thing: (() -> Unit)): Boolean {
+inline fun Player.runBlock(
+    errorMessage: String = "§cAn internal error occurred while executing something to you.",
+    crossinline thing: (() -> Unit)
+): Boolean {
     return try {
         thing.invoke()
         true
     } catch (ex: Exception) {
         ex.printStackTrace()
         this.soundNo()
-        this.sendMessage("§cAn internal error occurred while executing something to you.")
+        this.sendMessage(errorMessage)
         false
     }
 }
 
 /**
  * Use in a command to run the Unit using a try catch. If any error occur,
- * the player will receive a message telling he that an error has been occured.
+ * the given [Player] will receive a message saying that an error occurred.
  *
  * @param thing the block code to run using try catch.
- * @return True if the block code was runned with no problems. Otherwise, false.
+ * @return True if the block code was run with no errors. Otherwise, false.
  */
-inline fun Player.runCommand(crossinline thing: (() -> Unit)): Boolean {
+inline fun Player.runCommand(
+    errorMessage: String = "§cAn internal error occurred while executing this command.",
+    crossinline thing: (() -> Unit)
+): Boolean {
     return try {
         thing.invoke()
         true
     } catch (ex: Exception) {
         ex.printStackTrace()
         this.soundNo()
-        this.sendMessage("§cAn internal error occurred while executing this command.")
+        this.sendMessage(errorMessage)
         false
     }
 }
@@ -525,7 +568,11 @@ inline fun Player.runCommand(crossinline thing: (() -> Unit)): Boolean {
  * @param thing the block code to run using async and try catch.
  */
 @Deprecated("Deprecated since mkUtils v1.1; Use Player.runCommand instead, inside an Async Block.")
-inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing: () -> (Unit)) {
+inline fun Player.runCommandAsync(
+    sendLoading: Boolean = true,
+    errorMessage: String = "§cAn internal error occurred while executing this command.",
+    crossinline thing: () -> (Unit)
+) {
     if (sendLoading) this.sendMessage("§eLoading...")
     UtilsMain.instance.asyncTask {
         try {
@@ -533,7 +580,7 @@ inline fun Player.runCommandAsync(sendLoading: Boolean = true, crossinline thing
         } catch (ex: Exception) {
             ex.printStackTrace()
             this.soundNo()
-            this.sendMessage("§cAn internal error occurred while executing this command.")
+            this.sendMessage(errorMessage)
         }
     }
 }
@@ -559,7 +606,7 @@ fun Player.clearActionBar() {
 }
 
 /**
- * Send an action bar to the player.
+ * Send an action bar to the given player.
  *
  * @param msg the message to send on player's action bar.
  */
@@ -568,7 +615,16 @@ fun Player.actionBar(msg: String) {
 }
 
 /**
- * Send a [title] and [subtitle] to the [Player].
+ * Clears the given [Player] client title field.
+ *
+ * @see Player.resetTitle
+ */
+fun Player.clearTitle() {
+    this.resetTitle()
+}
+
+/**
+ * Sends a [title] and [subtitle] to the given [Player].
  *
  * @see Player.sendTitle
  */

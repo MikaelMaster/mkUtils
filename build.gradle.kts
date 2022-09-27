@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.mikael"
-version = "1.1"
+version = "1.2"
 
 java.sourceCompatibility = JavaVersion.VERSION_17
 java.targetCompatibility = JavaVersion.VERSION_17
@@ -28,8 +28,8 @@ dependencies {
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
     api("redis.clients:jedis:4.2.3")
-    api("org.slf4j:slf4j-api:2.0.0")
-    api("org.slf4j:slf4j-log4j12:2.0.0")
+    api("org.slf4j:slf4j-api:2.0.1")
+    api("org.slf4j:slf4j-log4j12:2.0.1")
     api(files("C:\\Users\\Usuario\\Desktop\\IntelliJ Global Depends\\EduardAPI-1.0-all.jar\\"))
 }
 
@@ -48,7 +48,7 @@ tasks {
         kotlinOptions.jvmTarget = "17"
     }
     shadowJar {
-        archiveVersion.set("1.1")
+        archiveVersion.set("1.2")
         archiveBaseName.set("mkUtils")
         destinationDirectory.set(
             file("C:\\Users\\Usuario\\Desktop\\Meus Plugins - Jars\\")
