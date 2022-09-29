@@ -13,5 +13,6 @@ class UtilsManager {
 
     val dbManager get() = sqlManager.dbManager
     lateinit var sqlManager: SQLManager
+    lateinit var mkUtilsVersion: String
 
 }

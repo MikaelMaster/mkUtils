@@ -8,6 +8,7 @@ import com.mikael.mkutils.api.redis.RedisBungeeAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.api.utilsmanager
+import com.mikael.mkutils.bungee.command.BungeeVersionCommand
 import com.mikael.mkutils.bungee.listener.BungeeGeneralListener
 import net.eduard.api.lib.bungee.BungeeAPI
 import net.eduard.api.lib.command.Command
@@ -47,6 +48,7 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
 
         log("§eStarting loading...")
         manager = resolvePut(UtilsManager())
+        manager.mkUtilsVersion = this.description.version
         prepareStorageAPI() // EduardAPI
         HybridTypes // {static} # Hybrid types - Load
         store<RedisConnectionData>()
@@ -67,6 +69,10 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         log("§eLoading systems...")
         prepareMySQL(); prepareRedis()
 
+        // Commands
+        BungeeVersionCommand().register(this)
+
+        // Listeners
         BungeeGeneralListener().register(this)
 
         val endTime = System.currentTimeMillis() - start
@@ -138,6 +144,11 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
             "Config of Redis server.",
             "All the plugins that use the mkUtilsProxy will use this Redis server."
         )
+        config.add(
+            "RedisBungeeAPI.logSpigotServersPowerActions",
+            false,
+            "It'll send a message on Proxy server's console when a spigot server turn on/off."
+        )
         config.saveConfig()
     }
 
@@ -151,6 +162,8 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
     fun log(msg: String) {
         ProxyServer.getInstance().console.sendMessage("§b[${systemName}] §f${msg}".toTextComponent())
     }
+
+    override val isFree: Boolean get() = true
 
     override fun getPlugin(): Any {
         return this

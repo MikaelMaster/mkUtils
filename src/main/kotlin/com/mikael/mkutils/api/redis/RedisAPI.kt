@@ -13,7 +13,7 @@ import redis.clients.jedis.Jedis
 object RedisAPI {
 
     /**
-     * RedisAPI v1.3 (Using Jedis v4.2.3)
+     * mkUtils RedisAPI (current using Jedis v4.2.3)
      *
      * Remember that in the mkUtils config you can enable this API automatically by setting Redis 'isEnabled' to true.
      * This API is not yet supported to be activated and used in different plugins at the same time with different Clients.
@@ -22,6 +22,7 @@ object RedisAPI {
      * @author Mikael
      * @see RedisConnectionData
      */
+    const val version = "v1.0-final"
 
     var useToSyncBungeePlayers: Boolean = false
     lateinit var managerData: RedisConnectionData

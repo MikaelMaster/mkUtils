@@ -10,7 +10,6 @@ import com.mikael.mkutils.spigot.listener.GeneralListener
 import net.eduard.api.lib.game.ItemBuilder
 import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatMessageType
-import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable

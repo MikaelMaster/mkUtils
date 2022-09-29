@@ -1,16 +1,20 @@
 package com.mikael.mkutils.spigot
 
-import com.mikael.mkutils.api.*
+import com.mikael.mkutils.api.Redis
+import com.mikael.mkutils.api.UtilsManager
+import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisBungeeAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
+import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.lib.craft.CraftAPI
 import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
 import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu
 import com.mikael.mkutils.spigot.api.storable.LocationStorable
+import com.mikael.mkutils.spigot.command.VersionCommand
 import com.mikael.mkutils.spigot.listener.GeneralListener
 import com.mikael.mkutils.spigot.task.AutoUpdateMenusTask
 import com.mikael.mkutils.spigot.task.PlayerTargetAtPlayerTask
@@ -59,6 +63,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
         log("§eLoading basics...")
         manager = resolvePut(UtilsManager())
+        manager.mkUtilsVersion = this.description.version
         prepareStorageAPI() // EduardAPI
         HybridTypes // {static} # Hybrid types - Load
         BukkitTypes.register() // Bukkit types - Load
@@ -89,6 +94,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         log("§eLoading systems...")
         prepareMySQL(); prepareRedis()
 
+        // Commands
+        VersionCommand().registerCommand(this)
+
+        // Listeners
         GeneralListener().registerListener(this)
 
         val endTime = System.currentTimeMillis() - start
@@ -126,6 +135,16 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             }
         }
 
+        if (RedisAPI.useToSyncBungeePlayers) {
+            log("§6[RedisBungeeAPI] §eMarking server as disabled on Redis...")
+            val newServerList = mutableListOf(
+                *RedisBungeeAPI.getSpigotServers().toTypedArray()
+            ); newServerList.removeIf { it == RedisBungeeAPI.spigotServerName }
+            RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
+            RedisAPI.client!!.del("mkUtils:BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players")
+            RedisAPI.sendEvent("mkUtils:BungeeAPI:Event:ServerPowerAction", "${RedisBungeeAPI.spigotServerName};off")
+        }
+
         log("§eUnloading APIs...")
         CraftAPI.onDisable()
         MenuSystem.onDisable()
@@ -152,6 +171,21 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
                 RedisBungeeAPI.bukkitServerOnEnable()
             }
             log("§aConnected to Redis server!")
+
+            if (RedisAPI.useToSyncBungeePlayers) {
+                val newServerList = mutableListOf(*RedisBungeeAPI.getSpigotServers().toTypedArray())
+                if (!newServerList.contains(RedisBungeeAPI.spigotServerName)) {
+                    newServerList.add(RedisBungeeAPI.spigotServerName)
+                }
+                Redis.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
+                Redis.insertStringList("mkUtils", "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players", mutableListOf(), false)
+                syncDelay(1) {
+                    Redis.sendEvent(
+                        "mkUtils:BungeeAPI:Event:ServerPowerAction",
+                        "${RedisBungeeAPI.spigotServerName};on"
+                    )
+                } // It'll be executed on the end of Spigot Server load
+            }
         } else {
             log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
         }
@@ -239,6 +273,8 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     }
 
     private fun reloadConfigs() {
+        config.setHeader("mkUtils v${description.version} config file.")
+
         config.add(
             "Database",
             DBManager(),
@@ -250,6 +286,11 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             RedisConnectionData(),
             "Config of Redis server.",
             "All plugins that use mkUtils RedisAPI will use this Redis server."
+        )
+        config.add(
+            "RedisBungeeAPI.spigotServerName",
+            "lobby-1",
+            "The name of this spigot server defined on Proxy config file."
         )
         config.add(
             "MenuAPI.autoUpdateMenus",
@@ -290,6 +331,8 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     fun log(msg: String) {
         Bukkit.getConsoleSender().sendMessage("§b[${systemName}] §f${msg}")
     }
+
+    override val isFree: Boolean get() = true
 
     override fun getPlugin(): Any {
         return this

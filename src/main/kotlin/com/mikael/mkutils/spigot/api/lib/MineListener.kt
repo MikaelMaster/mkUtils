@@ -2,10 +2,8 @@ package com.mikael.mkutils.spigot.api.lib
 
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
-import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 
 open class MineListener : Listener {
