@@ -20,7 +20,9 @@ object MenuSystem {
     }
 
     fun onDisable() {
-        registeredMenus.forEach { it.unregisterMenu() }
+        val registeredMenusCopy = mutableSetOf<MineMenu>(); registeredMenusCopy.addAll(registeredMenus)
+        registeredMenusCopy.forEach { it.unregisterMenu() }; registeredMenusCopy.clear()
+        registeredMenus.clear()
         openedMenu.clear()
         openedPage.clear()
     }

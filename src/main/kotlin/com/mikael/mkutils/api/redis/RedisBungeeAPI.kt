@@ -48,7 +48,7 @@ object RedisBungeeAPI {
      * @see RedisAPI.getStringList
      */
     fun getSpigotServers(): List<String> {
-        return Redis.getStringList("mkUtils", "RedisBungeeAPI:Servers")
+        return Redis.getStringList("mkUtils", "BungeeAPI:Servers")
     }
 
     /**
@@ -96,8 +96,8 @@ object RedisBungeeAPI {
      * @see RedisAPI.getStringList
      */
     fun getOnlinePlayers(serverName: String): List<String> {
-        if (!Redis.client!!.exists("RPGCore:Servers:$serverName:Players")) return emptyList()
-        return Redis.getStringList("RPGCore", "Servers:$serverName:Players")
+        if (!Redis.client!!.exists("mkUtils:BungeeAPI:Servers:$serverName:Players")) return emptyList()
+        return Redis.getStringList("mkUtils", "BungeeAPI:Servers:$serverName:Players")
     }
 
     /**

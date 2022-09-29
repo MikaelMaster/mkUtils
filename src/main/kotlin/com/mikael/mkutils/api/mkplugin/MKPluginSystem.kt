@@ -8,4 +8,8 @@ object MKPluginSystem {
         loadedMKPlugins.clear()
     }
 
+    fun activeMKPLugin(plugin: MKPlugin): Boolean {
+        // do code here
+        return true
+    }
 }

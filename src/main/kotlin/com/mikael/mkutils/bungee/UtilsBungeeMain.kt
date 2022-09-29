@@ -45,9 +45,9 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
     override fun onEnable() {
         instance = this@UtilsBungeeMain
         val start = System.currentTimeMillis()
+        manager = resolvePut(UtilsManager()) // Should be here
 
         log("§eStarting loading...")
-        manager = resolvePut(UtilsManager())
         manager.mkUtilsVersion = this.description.version
         prepareStorageAPI() // EduardAPI
         HybridTypes // {static} # Hybrid types - Load

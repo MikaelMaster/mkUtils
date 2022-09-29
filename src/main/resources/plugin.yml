@@ -7,6 +7,10 @@ author: Mikael
 main: com.mikael.mkutils.spigot.UtilsMain
 
 commands:
+  mkutils:
+    description: Shows mkUtils current version.
+    usage: /mkutils
+    permission: mkutils.defaultperm
   customcrafts:
     aliases:
       - customcraftrecipes
