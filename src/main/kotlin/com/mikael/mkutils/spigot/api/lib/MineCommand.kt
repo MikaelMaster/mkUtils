@@ -6,24 +6,25 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
+/**
+ * [MineCommand] util class
+ *
+ * *NOT FINISHED YET! DON'T USE IT!*
+ *
+ * This class represents a [CommandExecutor].
+ *
+ * To create a new MineCommand, extends it in a Class. As the example below:
+ * - class TestCommand : MineCommand(command: [String]) { *class code* } -> This command will have no aliases.
+ * - class TestCommand : MineCommand(command: [String], vararg aliasses: [String]) { *class code* } -> this command will have the given aliases.
+ *
+ * @param command the command name, as the example above.
+ * @param aliases the command aliases, as the example above.
+ * @author Mikael
+ * @see CommandExecutor
+ * @see command
+ * @see playerCommand
+ */
 open class MineCommand(command: String, vararg aliases: String) : CommandExecutor {
-
-    /**
-     * MineCommand util class
-     *
-     * *NOT FINISHED YET! DON'T USE IT!*
-     *
-     * This class represents an [CommandExecutor].
-     *
-     * To create a new MineCommand, extends it in a Class. As the example below:
-     * - class TestCommand : MineCommand(command: [String]) { *class code* } * No aliasses
-     * - class TestCommand : MineCommand(command: [String], vararg aliasses: [String]) { *class code* }
-     *
-     * @author Mikael
-     * @see CommandExecutor
-     * @see command
-     * @see playerCommand
-     */
 
     /**
      * The command permission.

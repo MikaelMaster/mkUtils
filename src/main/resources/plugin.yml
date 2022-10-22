@@ -1,5 +1,5 @@
 name: mkUtils
-version: 1.2.0
+version: 1.2.5
 api-version: 1.17
 load: POSTWORLD
 loadbefore: [ WRLDPaymentsAPI ]
@@ -8,13 +8,13 @@ main: com.mikael.mkutils.spigot.UtilsMain
 
 commands:
   mkutils:
-    description: Shows mkUtils current version.
+    description: Shows mkUtils version.
     usage: /mkutils
     permission: mkutils.defaultperm
   customcrafts:
     aliases:
       - customcraftrecipes
       - customrecipes
-    description: Show all server custom crafts.
+    description: Opens a menu with all server custom crafts.
     usage: /customcrafts
     permission: mkutils.cmd.customcrafts

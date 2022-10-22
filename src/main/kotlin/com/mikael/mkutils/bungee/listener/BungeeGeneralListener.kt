@@ -1,10 +1,6 @@
 package com.mikael.mkutils.bungee.listener
 
 import com.mikael.mkutils.api.redis.RedisAPI
-import com.mikael.mkutils.api.toTextComponent
-import com.mikael.mkutils.bungee.UtilsBungeeMain
-import net.md_5.bungee.api.connection.ProxiedPlayer
-import net.md_5.bungee.api.event.ChatEvent
 import net.md_5.bungee.api.event.PlayerDisconnectEvent
 import net.md_5.bungee.api.event.PostLoginEvent
 import net.md_5.bungee.api.plugin.Listener
@@ -12,6 +8,7 @@ import net.md_5.bungee.event.EventHandler
 
 class BungeeGeneralListener : Listener {
 
+    /*
     @EventHandler
     fun versionCommand(e: ChatEvent) {
         if (!e.message.equals("/mkutilsproxy", true)) return
@@ -19,6 +16,7 @@ class BungeeGeneralListener : Listener {
         player.sendMessage("§a${UtilsBungeeMain.instance.systemName} §ev${UtilsBungeeMain.instance.description.version} §f- §bdeveloped by Mikael.".toTextComponent())
         e.isCancelled = true
     }
+     */
 
     @EventHandler
     fun onPlayerJoin(e: PostLoginEvent) {

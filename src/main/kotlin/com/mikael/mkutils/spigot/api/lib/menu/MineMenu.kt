@@ -17,25 +17,24 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.Inventory
 
+/**
+ * [MineMenu] util class
+ *
+ * This class extends a [MineListener].
+ *
+ * You can learn how to use it on [com.mikael.mkutils.spigot.api.lib.menu.example].
+ * There, you'll find examples about how to create all different types of menu available.
+ *
+ * To create a new MineMenu, extends it in a Class. As the example below:
+ * - class TestMenu : MineMenu(title: [String], lineAmount: [Int]) { *class code* }
+ *
+ * @author Mikael
+ * @see MineListener
+ * @see MenuButton
+ * @see MenuPage
+ * @see MenuSystem
+ */
 open class MineMenu(var title: String, var lineAmount: Int) : MineListener() {
-
-    /**
-     * MineMenu util class
-     *
-     * This class extends a [MineListener].
-     *
-     * You can learn how to use it on [com.mikael.mkutils.spigot.api.lib.menu.example].
-     * There, you'll find examples about how to create all different types of menu available.
-     *
-     * To create a new MineMenu, extends it in a Class. As the example below:
-     * - class TestMenu : MineMenu(title: [String], lineAmount: [Int]) { *class code* }
-     *
-     * @author Mikael
-     * @see MineListener
-     * @see MenuButton
-     * @see MenuPage
-     * @see MenuSystem
-     */
 
     var isAutoUpdate = true // Auto update this menu
 

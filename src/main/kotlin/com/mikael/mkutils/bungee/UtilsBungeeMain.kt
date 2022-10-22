@@ -78,13 +78,23 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         val endTime = System.currentTimeMillis() - start
         log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsBungeeMain)
 
-        // MySQL queue updater timer
-        if (utilsmanager.sqlManager.hasConnection()) {
-            mySqlQueueUpdater = ProxyServer.getInstance().scheduler.schedule(this, queueUpdater@{
-                if (!utilsmanager.sqlManager.hasConnection()) return@queueUpdater
-                utilsmanager.sqlManager.runChanges()
-            }, 1, 1, TimeUnit.SECONDS)
-        }
+        ProxyServer.getInstance().scheduler.schedule(this, delay@{
+
+            // Show MK Plugins
+            log("§aLoaded MK Plugins:")
+            for (mkPlugin in MKPluginSystem.loadedMKPlugins) {
+                val mkProxyPl = mkPlugin.plugin as Plugin
+                log(" §7▪ §e${mkProxyPl.description.name} v${mkProxyPl.description.version}")
+            }
+
+            // MySQL queue updater timer
+            if (utilsmanager.sqlManager.hasConnection()) {
+                mySqlQueueUpdater = ProxyServer.getInstance().scheduler.schedule(this, queueUpdater@{
+                    if (!utilsmanager.sqlManager.hasConnection()) return@queueUpdater
+                    utilsmanager.sqlManager.runChanges()
+                }, 1, 1, TimeUnit.SECONDS)
+            }
+        }, 1, TimeUnit.SECONDS)
     }
 
     override fun onDisable() {
@@ -159,11 +169,11 @@ class UtilsBungeeMain : Plugin(), MKPlugin {
         Command.MESSAGE_PERMISSION = "§cYou don't have permission to use this command." // EduardAPI
     }
 
-    fun log(msg: String) {
+    override val isFree: Boolean get() = true
+
+    override fun log(msg: String) {
         ProxyServer.getInstance().console.sendMessage("§b[${systemName}] §f${msg}".toTextComponent())
     }
-
-    override val isFree: Boolean get() = true
 
     override fun getPlugin(): Any {
         return this

@@ -14,6 +14,7 @@ import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable
 import org.bukkit.block.data.Waterlogged
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.*
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
@@ -34,7 +35,31 @@ fun String?.toPaperComponent(): Component {
 }
 
 /**
+ * @return if [Ageable.isAdult] 'Adult' else 'Baby'.
+ */
+fun Ageable.formatAgeText(): String {
+    return if (this.isAdult) "Adult" else "Baby"
+}
+
+/**
+ * It'll check if the value returned from [Player.openedMineMenu] is not null.
+ * If it's not, and the returned menu is the given [menu] the [player] have an opened [MineMenu].
+ *
+ * Note: This is a shortcut of [MenuSystem.isMenuOpen].
+ *
+ * @return True if the given [Player] is with the given [menu] opened. Otherwise, false.
+ * @see MineMenu
+ * @see Player.openedMineMenu
+ * @see MenuSystem
+ */
+fun Player.isMineMenuOpen(menu: MineMenu): Boolean {
+    return MenuSystem.isMenuOpen(menu, this)
+}
+
+/**
  * Sets/returns player's opened [MineMenu].
+ *
+ * Note: 'Set' option is *internal only*.
  *
  * @return Player's opened [MineMenu]?.
  * @see MineMenu
@@ -51,6 +76,8 @@ var Player.openedMineMenu: MineMenu?
 
 /**
  * Sets/returns player's opened [MenuPage].
+ *
+ * Note: 'Set' option is *internal only*.
  *
  * @return Player's opened [MenuPage]?.
  * @see MenuPage
@@ -539,6 +566,32 @@ inline fun Player.runBlock(
 
 /**
  * Use in a command to run the Unit using a try catch. If any error occur,
+ * the given [CommandSender] (can be the Console) will receive a message saying that an error occurred.
+ *
+ * If the given [CommandSender] is a [Player], [Player.runCommand] will be called internally.
+ *
+ * @param thing the block code to run using try catch.
+ * @return True if the block code was run with no errors. Otherwise, false.
+ */
+inline fun CommandSender.runCommand(
+    errorMessage: String = "§cAn internal error occurred while executing this command.",
+    crossinline thing: (() -> Unit)
+): Boolean {
+    if (this is Player) {
+        return this.runCommand(errorMessage, thing)
+    }
+    return try {
+        thing.invoke()
+        true
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+        this.sendMessage(errorMessage)
+        false
+    }
+}
+
+/**
+ * Use in a command to run the Unit using a try catch. If any error occur,
  * the given [Player] will receive a message saying that an error occurred.
  *
  * @param thing the block code to run using try catch.
@@ -643,13 +696,13 @@ fun Player.title(title: String?, subtitle: String?, fadeIn: Int = 10, stay: Int 
  */
 val Chunk.blocks: List<Block>
     get() {
-        val blocs = mutableListOf<Block>()
+        val blocks = mutableListOf<Block>()
         for (x in 0..15) {
             for (y in 0..255) {
                 for (z in 0..15) {
-                    blocs.add(this.getBlock(x, y, z))
+                    blocks.add(this.getBlock(x, y, z))
                 }
             }
         }
-        return blocs
+        return blocks
     }

@@ -16,21 +16,21 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.bukkit.potion.PotionEffect
 import java.util.*
 
+/**
+ * [MineItem] util class
+ *
+ * This class represents an [ItemStack].
+ *
+ * To create/invoke a new MineItem you can use:
+ * - MineItem(item: [ItemStack])
+ * - MineItem(material: [Material])
+ * - MineItem(material: [Material], amount: [Int])
+ *
+ * @param item the [ItemStack] to create a new MineItem. You can also use the other constructors above.
+ * @author Mikael
+ * @see ItemStack
+ */
 class MineItem(item: ItemStack) : ItemStack(item) {
-
-    /**
-     * MineItem util class
-     *
-     * This class represents an [ItemStack].
-     *
-     * To create/invoke it you can use:
-     * - MineItem(item: [ItemStack])
-     * - MineItem(material: [Material])
-     * - MineItem(material: [Material], amount: [Int])
-     *
-     * @author Mikael
-     * @see ItemStack
-     */
 
     constructor(material: Material) : this(ItemStack(material))
     constructor(material: Material, amount: Int) : this(ItemStack(material, amount))
@@ -53,15 +53,26 @@ class MineItem(item: ItemStack) : ItemStack(item) {
         return this
     }
 
+    fun lore(lore: List<String>): MineItem {
+        val meta = this.itemMeta ?: return this
+        meta.lore = lore
+        this.itemMeta = meta
+        return this
+    }
+
     fun addLore(vararg lines: String): MineItem {
         val meta = this.itemMeta ?: return this
-        val newLore = mutableListOf<String>()
-        for (line in getLore()) {
-            newLore.add(line)
-        }
-        for (newLine in lines) {
-            newLore.add(newLine)
-        }
+        val newLore = mutableListOf<String>(); newLore.addAll(getLore())
+        newLore.addAll(lines.toList())
+        meta.lore = newLore
+        this.itemMeta = meta
+        return this
+    }
+
+    fun addLore(lines: List<String>): MineItem {
+        val meta = this.itemMeta ?: return this
+        val newLore = mutableListOf<String>(); newLore.addAll(getLore())
+        newLore.addAll(lines.toList())
         meta.lore = newLore
         this.itemMeta = meta
         return this
@@ -69,6 +80,7 @@ class MineItem(item: ItemStack) : ItemStack(item) {
 
     fun clearLore(): MineItem {
         val meta = this.itemMeta ?: return this
+        meta.lore = listOf()
         this.itemMeta = meta
         return this
     }
@@ -211,6 +223,6 @@ class MineItem(item: ItemStack) : ItemStack(item) {
     }
 
     fun skinId(skinId: String): MineItem { // Custom Skull Skin ID
-        return this.skin("http://textures.minecraft.net/texture/${skinId}")
+        return this.skin("https://textures.minecraft.net/texture/${skinId}")
     }
 }

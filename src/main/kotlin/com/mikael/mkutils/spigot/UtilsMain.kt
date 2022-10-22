@@ -1,6 +1,5 @@
 package com.mikael.mkutils.spigot
 
-import com.mikael.mkutils.api.Redis
 import com.mikael.mkutils.api.UtilsManager
 import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.mkplugin.MKPlugin
@@ -177,10 +176,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
                 if (!newServerList.contains(RedisBungeeAPI.spigotServerName)) {
                     newServerList.add(RedisBungeeAPI.spigotServerName)
                 }
-                Redis.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
-                Redis.insertStringList("mkUtils", "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players", mutableListOf(), false)
+                RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
+                RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players", mutableListOf(), false)
                 syncDelay(1) {
-                    Redis.sendEvent(
+                    RedisAPI.sendEvent(
                         "mkUtils:BungeeAPI:Event:ServerPowerAction",
                         "${RedisBungeeAPI.spigotServerName};on"
                     )
@@ -328,11 +327,11 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         config.saveConfig()
     }
 
-    fun log(msg: String) {
+    override val isFree: Boolean get() = true
+
+    override fun log(msg: String) {
         Bukkit.getConsoleSender().sendMessage("§b[${systemName}] §f${msg}")
     }
-
-    override val isFree: Boolean get() = true
 
     override fun getPlugin(): Any {
         return this

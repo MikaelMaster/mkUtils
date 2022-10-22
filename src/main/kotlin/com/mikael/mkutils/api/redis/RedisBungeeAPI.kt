@@ -20,7 +20,7 @@ object RedisBungeeAPI {
     /**
      * Should NOT be used on Proxy Server side.
      *
-     * @return the name of this spigot server set on [UtilsMain.config] file. (RedisBungeeAPI.spigotServerName)
+     * @return the name of this spigot server set on [UtilsMain.config] file. (RedisBungeeAPI.spigotServerName: "lobby-1")
      * @throws NullPointerException if used on Proxy Server.
      */
     val spigotServerName: String get() = UtilsMain.instance.config.getString("RedisBungeeAPI.spigotServerName")

@@ -1,6 +1,12 @@
 package com.mikael.mkutils.api.redis
 
 import com.mikael.mkutils.api.isProxyServer
+import com.mikael.mkutils.api.redis.RedisAPI.client
+import com.mikael.mkutils.api.redis.RedisAPI.connectClient
+import com.mikael.mkutils.api.redis.RedisAPI.connectExtraClient
+import com.mikael.mkutils.api.redis.RedisAPI.createClient
+import com.mikael.mkutils.api.redis.RedisAPI.createExtraClient
+import com.mikael.mkutils.api.redis.RedisAPI.usedRedisConnectionData
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.bungee.UtilsBungeeMain
 import com.mikael.mkutils.spigot.UtilsMain
@@ -10,19 +16,22 @@ import net.md_5.bungee.api.ProxyServer
 import redis.clients.jedis.Connection
 import redis.clients.jedis.Jedis
 
+/**
+ * mkUtils [RedisAPI] (current using [Jedis] Redis Client v4.2.3)
+ *
+ * Remember that in the mkUtils config you can enable this API automatically by setting Redis 'isEnabled' to true.
+ * You should always create a single Redis Client ([createClient]), and connect it ([connectClient]), to use in all your plugins.
+ *
+ * To create pub-subs you can call an Async [Thread], and use [createExtraClient], then [connectExtraClient].
+ * You can use the [usedRedisConnectionData] for these 'extra' clients.
+ *
+ * IMPORTANT: NEVER call default RedisAPI functions that uses the default [client] using Async. To do it, use [createExtraClient], then [connectExtraClient].
+ * This 'extra' client should be used just inside that created Async [Thread].
+ *
+ * @author Mikael
+ * @see RedisConnectionData
+ */
 object RedisAPI {
-
-    /**
-     * mkUtils RedisAPI (current using Jedis v4.2.3)
-     *
-     * Remember that in the mkUtils config you can enable this API automatically by setting Redis 'isEnabled' to true.
-     * This API is not yet supported to be activated and used in different plugins at the same time with different Clients.
-     * You should always create a single Redis Client ([createClient]), connect it ([connectClient]), and use it in all your plugins.
-     *
-     * @author Mikael
-     * @see RedisConnectionData
-     */
-    const val version = "v1.0-final"
 
     var useToSyncBungeePlayers: Boolean = false
     lateinit var managerData: RedisConnectionData
@@ -95,33 +104,34 @@ object RedisAPI {
     private fun flushConnection(): Boolean {
         if (!testPing()) {
             if (isProxyServer) {
-                UtilsBungeeMain.instance.log("§cThe connection with redis server is broken. Disconnecting players...")
-                for (playerLoop in ProxyServer.getInstance().players) {
-                    playerLoop.disconnect("§c[${UtilsBungeeMain.instance.systemName}] An internal error occurred. :c".toTextComponent())
-                }
+                UtilsBungeeMain.instance.log("§cThe connection with redis server is broken. :c")
                 try {
                     UtilsBungeeMain.instance.log("§eTrying to reconnect to redis server...")
                     createClient(managerData) // Recreate a redis client
                     connectClient(true) // Reconnect redis client
                     UtilsBungeeMain.instance.log("§aReconnected to redis server! (Some data may not have been synced)")
+                    return true
                 } catch (ex: Exception) {
-                    error("Cannot reconnect to redis server: ${ex.stackTrace}")
+                    for (playerLoop in ProxyServer.getInstance().players) {
+                        playerLoop.disconnect("§c[${UtilsBungeeMain.instance.systemName}] An internal error occurred. :c".toTextComponent())
+                    }
+                    error("Cannot reconnect to redis server, disconnecting players. Error: ${ex.stackTrace}")
                 }
             } else {
-                UtilsMain.instance.log("§cThe connection with redis server is broken. Disconnecting players...")
-                for (playerLoop in Mine.getPlayers()) {
-                    playerLoop.kickPlayer("§c[${UtilsMain.instance.systemName}] An internal error occurred. :c")
-                }
+                UtilsMain.instance.log("§cThe connection with redis server is broken. :c")
                 try {
                     UtilsMain.instance.log("§eTrying to reconnect to redis server...")
                     createClient(managerData) // Recreate a redis client
                     connectClient(true) // Reconnect redis client
                     UtilsMain.instance.log("§aReconnected to redis server! (Some data may not have been synced)")
+                    return true
                 } catch (ex: Exception) {
-                    error("Cannot reconnect to redis server: ${ex.stackTrace}")
+                    for (playerLoop in Mine.getPlayers()) {
+                        playerLoop.kickPlayer("§c[${UtilsMain.instance.systemName}] An internal error occurred. :c")
+                    }
+                    error("Cannot reconnect to redis server, disconnecting players. Error: ${ex.stackTrace}")
                 }
             }
-            return false
         } else {
             return true
         }

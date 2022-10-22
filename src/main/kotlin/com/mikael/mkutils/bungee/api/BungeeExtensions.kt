@@ -1,8 +1,30 @@
 package com.mikael.mkutils.bungee.api
 
 import com.mikael.mkutils.api.toTextComponent
+import net.eduard.api.lib.hybrid.ISender
 import net.md_5.bungee.api.ProxyServer
 import net.md_5.bungee.api.connection.ProxiedPlayer
+
+/**
+ * Use in a proxy command to run the Unit using a try catch. If any error occur,
+ * the given [ISender] (can be the Console) will receive a message saying that an error occurred.
+ *
+ * @param thing the block code to run using try catch.
+ * @return True if the block code was run with no errors. Otherwise, false.
+ */
+inline fun ISender.runCommand(
+    errorMessage: String = "§c[Proxy] An internal error occurred while executing this command.",
+    crossinline thing: (() -> Unit)
+): Boolean {
+    return try {
+        thing.invoke()
+        true
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+        this.sendMessage(errorMessage)
+        false
+    }
+}
 
 /**
  * Use in a proxy command to run the Unit using a try catch. If any error occur,
@@ -17,7 +39,6 @@ inline fun ProxiedPlayer.runCommand(
 ): Boolean {
     return try {
         thing.invoke()
-        this.socketAddress
         true
     } catch (ex: Exception) {
         ex.printStackTrace()

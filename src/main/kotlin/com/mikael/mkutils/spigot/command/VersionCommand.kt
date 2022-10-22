@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender
 
 class VersionCommand : CommandManager("mkutils") {
 
-    private val versionMsg get() = "§amkUtils §ev${UtilsMain.instance.description.version} §f- §bdeveloped with §c❤ §bby Mikael."
+    private val versionMsg get() = "§a${UtilsMain.instance.systemName} §ev${UtilsMain.instance.description.version} §f- §bdeveloped with §c❤ §bby Mikael."
 
     init {
         usage = "/mkutils"

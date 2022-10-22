@@ -72,6 +72,39 @@ fun String?.toTextComponent(): TextComponent {
 }
 
 /**
+ * You can use this to format something as yours (Personal).
+ *
+ * Example:
+ *
+ * * Notch.{[String.formatPersonal]} phone. -> Notch's phone.
+ * * MKjubs.{[String.formatPersonal]} phone. -> MKjubs' phone
+ *
+ * @return the new [String] as a Personal format.
+ */
+fun String.formatPersonal(): String {
+    return if (this.last() == 's') "${this}'" else "${this}'s"
+}
+
+/**
+ * The first letter (Char) of the given [String] will be changed to UpperCase.
+ *
+ * Example:
+ *
+ * * hi, how are you? -> Hi, how are you?
+ *
+ * @return the fixed [String].
+ */
+fun String.fixGrammar(): String {
+    val firstChar = this.first().uppercase()
+    val newString = StringBuilder(); newString.append(firstChar)
+    for ((index, char) in this.toCharArray().withIndex()) {
+        if (index == 0) continue
+        newString.append(char)
+    }
+    return newString.toString()
+}
+
+/**
  * Will return a [String] with "seconds" if the given [Int] is different from 1. Otherwise, it will return "second".
  *
  * @return a [String] with "seconds" or "second". Can be '-1' if the given [Int] is negative (-1, -2, etc).
