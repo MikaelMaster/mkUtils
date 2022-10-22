@@ -91,7 +91,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         BungeeAPI.bukkit.register(this) // EduardAPI
 
         log("§eLoading systems...")
-        prepareMySQL(); prepareRedis()
+        prepareDebugs(); prepareMySQL(); prepareRedis()
 
         // Commands
         VersionCommand().registerCommand(this)
@@ -177,7 +177,12 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
                     newServerList.add(RedisBungeeAPI.spigotServerName)
                 }
                 RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
-                RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players", mutableListOf(), false)
+                RedisAPI.insertStringList(
+                    "mkUtils",
+                    "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players",
+                    mutableListOf(),
+                    false
+                )
                 syncDelay(1) {
                     RedisAPI.sendEvent(
                         "mkUtils:BungeeAPI:Event:ServerPowerAction",
@@ -226,12 +231,15 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         }
     }
 
-    private fun prepareBasics() {
+    private fun prepareDebugs() {
         // mkUtils Menu System - Debug Mode
         if (config.getBoolean("MenuAPI.debugMode")) {
             SinglePageExampleMenu().registerMenu(this)
             ExampleMenuCommand().registerCommand(this)
         }
+    }
+
+    private fun prepareBasics() {
         Menu.isDebug = false // EduardAPI legacy Menu System - Debug Mode
         DBManager.setDebug(false) // EduardAPI
         Config.isDebug = false // EduardAPI
