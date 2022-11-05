@@ -1,10 +1,16 @@
 package com.mikael.mkutils.api
 
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.mikael.mkutils.api.mkplugin.MKPluginData
 import com.mikael.mkutils.api.redis.RedisAPI
 import net.eduard.api.lib.hybrid.Hybrid
 import net.eduard.api.lib.kotlin.resolve
 import net.md_5.bungee.api.chat.TextComponent
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import java.net.URL
 import java.text.NumberFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -220,4 +226,34 @@ fun Long.formatDuration(): String {
         val formatedTime = stringBuilder.toString()
         formatedTime.ifEmpty { "-1" }
     }
+}
+
+/**
+ * Opens an [InputStreamReader] to build a [StringBuilder]. The returned value can be transformed to a JSON Object.
+ *
+ * @return the built [StringBuilder] with a 'possible' JSON Object.
+ * @throws IOException
+ */
+fun URL.stream(): String {
+    this.openStream().use { input ->
+        val isr = InputStreamReader(input)
+        val reader = BufferedReader(isr)
+        val json = java.lang.StringBuilder()
+        var c: Int
+        while (reader.read().also { c = it } != -1) {
+            json.append(c.toChar())
+        }
+        return json.toString()
+    }
+}
+
+/**
+ * @return a [JsonObject] from the [URL].
+ * @throws JsonIOException
+ * @throws JsonSyntaxException
+ * @see URL.stream
+ * @see JsonParser.parse
+ */
+fun URL.getJson(): JsonObject {
+    return JsonParser().parse(this.stream()).asJsonObject
 }
