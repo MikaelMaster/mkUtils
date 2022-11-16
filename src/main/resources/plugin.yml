@@ -1,9 +1,10 @@
 name: mkUtils
-version: 1.2.5
+description: mkUtils is a lib for plugins development. By Mikael with help of Eduard.
+version: 1.2.7
 api-version: 1.17
 load: POSTWORLD
 loadbefore: [ WRLDPaymentsAPI ]
-author: Mikael
+authors: [ Mikael, Eduard ]
 main: com.mikael.mkutils.spigot.UtilsMain
 
 commands:

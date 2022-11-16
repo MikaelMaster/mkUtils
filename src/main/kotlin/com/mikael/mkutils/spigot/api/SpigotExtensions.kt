@@ -3,6 +3,7 @@ package com.mikael.mkutils.spigot.api
 import com.mikael.mkutils.api.formatEN
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
+import com.mikael.mkutils.spigot.api.lib.MineBook
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.menu.MenuPage
 import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
@@ -23,6 +24,7 @@ import org.bukkit.inventory.ItemStack
 
 /**
  * Transforms a [String]? into a [Component].
+ * A null string will return a [Component] with an empty string. ("")
  *
  * @return a Paper [Component] with the given [String], or empty if null is given.
  * @see Component
@@ -35,11 +37,28 @@ fun String?.toPaperComponent(): Component {
     }
 }
 
+// MineBook extra functions - Start
 /**
- * @return if [Ageable.isAdult] 'Adult' else 'Baby'.
+ * Opens the [book] to the given [Player].
+ *
+ * Note: The function [MineBook.open] uses NMS. (NMS 1.8_R3)
+ *
+ * @see MineBook.open
  */
-fun Ageable.formatAgeText(): String {
-    return if (this.isAdult) "Adult" else "Baby"
+fun Player.openMineBook(book: MineBook) {
+    book.open(this)
+}
+// MineBook extra functions - End
+
+// MineMenu extra functions - Start
+/**
+ * Opens the [menu] to the given [Player].
+ *
+ * @return the opened [Inventory] owned by the [MineMenu] ([menu]).
+ * @see MineMenu.open
+ */
+fun Player.openMineMenu(menu: MineMenu): Inventory {
+    return menu.open(this)
 }
 
 /**
@@ -67,11 +86,11 @@ fun Player.isMineMenuOpen(menu: MineMenu): Boolean {
  */
 var Player.openedMineMenu: MineMenu?
     get() = MenuSystem.openedMenu[this]
-    internal set(value) {
-        if (value == null) {
+    internal set(menu) {
+        if (menu == null) {
             MenuSystem.openedMenu.remove(this)
         } else {
-            MenuSystem.openedMenu[this] = value
+            MenuSystem.openedMenu[this] = menu
         }
     }
 
@@ -85,13 +104,21 @@ var Player.openedMineMenu: MineMenu?
  */
 var Player.openedMineMenuPage: MenuPage?
     get() = MenuSystem.openedPage[this]
-    internal set(value) {
-        if (value == null) {
+    internal set(menu) {
+        if (menu == null) {
             MenuSystem.openedPage.remove(this)
         } else {
-            MenuSystem.openedPage[this] = value
+            MenuSystem.openedPage[this] = menu
         }
     }
+// MineMenu extra functions - End
+
+/**
+ * @return if [Ageable.isAdult] 'Adult' else 'Baby'.
+ */
+fun Ageable.formatAgeText(): String {
+    return if (this.isAdult) "Adult" else "Baby"
+}
 
 /**
  * @return The player that clicked the menu. ([InventoryClickEvent.getWhoClicked] as [Player])

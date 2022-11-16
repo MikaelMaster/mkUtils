@@ -30,7 +30,7 @@ import java.util.*
  * @author Mikael
  * @see ItemStack
  */
-class MineItem(item: ItemStack) : ItemStack(item) {
+open class MineItem(item: ItemStack) : ItemStack(item) {
 
     constructor(material: Material) : this(ItemStack(material))
     constructor(material: Material, amount: Int) : this(ItemStack(material, amount))
@@ -144,6 +144,18 @@ class MineItem(item: ItemStack) : ItemStack(item) {
         return this
     }
 
+    /**
+     * @return a new [MineBook] using this [MineItem] as 'baseItem'.
+     * @see MineBook
+     */
+    fun toMineBook(): MineBook {
+        return MineBook(this)
+    }
+
+    /**
+     * @return a clone of this [MineItem].
+     * @see ItemStack.clone
+     */
     override fun clone(): MineItem {
         return super.clone() as MineItem
     }
