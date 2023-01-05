@@ -1,6 +1,6 @@
 name: mkUtils
 description: mkUtils is a lib for plugins development. By Mikael with help of Eduard.
-version: 1.2.7
+version: 1.2.8
 api-version: 1.17
 load: POSTWORLD
 loadbefore: [ WRLDPaymentsAPI ]
