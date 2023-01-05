@@ -14,7 +14,7 @@ import org.bukkit.Bukkit
  * - val clw = MineCooldown(ticks: [Long]) -> 20 ticks = 1s. So, with '20' as parameter, you'll create an 1-second delay.
  *
  * Then, you can use clw.apply { *code* } to set your custom [messageOnCooldown] for example.
- * Important: Inside [messageOnCooldown] use the placeholder '%time' to get the seconds.
+ * Important: Inside [messageOnCooldown] use the placeholder '%time%' to get the seconds.
  * So, the message "Please wait %times to use this again." will be transformed into -> "Please wait 3s to use this again." (3 seconds as example)
  *
  * To use, just do as the example bellow:
@@ -27,7 +27,7 @@ import org.bukkit.Bukkit
  */
 class MineCooldown(var duration: Long) {
 
-    var messageOnCooldown: String? = "§cPlease wait §e%times §cto use this again."
+    var messageOnCooldown: String? = "§cPlease wait §e%time%s §cto use this again."
 
     fun noMessages() {
         messageOnCooldown = null
@@ -65,10 +65,10 @@ class MineCooldown(var duration: Long) {
         messageOnCooldown?.let {
             if (isProxyServer) {
                 ProxyServer.getInstance().getPlayer(playerName)
-                    ?.sendMessage(it.replace("%time", "${getCooldown(playerName)}").toTextComponent())
+                    ?.sendMessage(it.replace("%time%", "${getCooldown(playerName)}").toTextComponent())
             } else {
                 Bukkit.getOnlinePlayers().firstOrNull { player -> player.name == playerName }
-                    ?.sendMessage(it.replace("%time", "${getCooldown(playerName)}"))
+                    ?.sendMessage(it.replace("%time%", "${getCooldown(playerName)}"))
             }
         }
     }
