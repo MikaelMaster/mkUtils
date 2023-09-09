@@ -1,103 +1,179 @@
 package com.mikael.mkutils.api.redis
 
-import com.mikael.mkutils.api.Redis
-import com.mikael.mkutils.api.isProxyServer
-import com.mikael.mkutils.api.redis.RedisAPI.client
-import com.mikael.mkutils.api.redis.RedisAPI.clientConnection
-import com.mikael.mkutils.api.syncMysqUpdatesKey
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.bungee.UtilsBungeeMain
+import com.mikael.mkutils.bungee.api.runBlock
 import com.mikael.mkutils.spigot.UtilsMain
-import net.eduard.api.lib.modules.Extra
+import com.mikael.mkutils.spigot.api.actionBar
+import com.mikael.mkutils.spigot.api.runBlock
+import com.mikael.mkutils.spigot.api.soundTP
 import net.md_5.bungee.api.ProxyServer
-import net.md_5.bungee.api.scheduler.ScheduledTask
-import org.bukkit.scheduler.BukkitTask
-import redis.clients.jedis.Jedis
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.Sound
+import org.bukkit.entity.Player
 import redis.clients.jedis.JedisPubSub
+import kotlin.concurrent.thread
 
+/**
+ * mkUtils [RedisBungeeAPI]
+ *
+ * It's very usefully over BungeeCord default messaging 'service'.
+ *
+ * @author Mikael
+ * @see RedisAPI
+ */
+@Suppress("WARNINGS")
 object RedisBungeeAPI {
 
     /**
-     * Should NOT be used on Proxy Server side.
-     *
-     * @return the name of this spigot server set on [UtilsMain.config] file. (RedisBungeeAPI.spigotServerName: "lobby-1")
-     * @throws NullPointerException if used on Proxy Server.
+     * @return True if the [RedisBungeeAPI] is enabled. Otherwise, false.
      */
+    val isEnabled: Boolean get() = RedisAPI.isInitialized() && RedisAPI.useToSyncBungeePlayers
+
+    // SPIGOT ONLY - Start
+
+    /**
+     * Returns this current spigot server name in mkUtils [RedisBungeeAPI] system.
+     *
+     * Should NOT be used in Proxy server side.
+     *
+     * @return The name of this server set in [UtilsMain.config] file.
+     * @throws ClassCastException if used in Proxy server.
+     */
+    @JvmStatic
     val spigotServerName: String get() = UtilsMain.instance.config.getString("RedisBungeeAPI.spigotServerName")
 
     /**
-     * @return a new connected Redis Client ([Jedis]).
-     * @see RedisAPI.connectExtraClient
+     * Internal.
      */
-    private fun getExtraJedis(): Jedis {
-        synchronized(syncMysqUpdatesKey) {
-            val connectionData =
-                if (isProxyServer) UtilsBungeeMain.instance.config["Redis", RedisConnectionData::class.java]
-                else UtilsMain.instance.config["Redis", RedisConnectionData::class.java]
-            val extraJedis = Redis.createExtraClient(connectionData)
-            Redis.connectExtraClient(extraJedis, connectionData)
-            return extraJedis
+    internal fun updateSpigotServerState(online: Boolean) {
+        if (online) {
+            RedisAPI.insertMap("mkUtils:BungeeAPI:Servers", mutableMapOf(spigotServerName to ""))
+        } else {
+            RedisAPI.mapDelete("mkUtils:BungeeAPI:Servers", spigotServerName)
         }
+        RedisAPI.sendEvent(
+            "mkUtils:BungeeAPI:Event:ServerPowerAction",
+            "${spigotServerName};${if (online) "on" else "off"}"
+        )
     }
 
+    // SPIGOT ONLY - End
+
     /**
-     * Please note that *servers will be returned as it's on the mkUtils Spigot Server Config File*.
+     * Please note that *servers will be returned as they're in the mkUtils Spigot Server Config File*.
      *
-     * @return a list with all Spigot Servers registered on mkUtils RedisBungeeAPI on this same Redis Server.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see RedisAPI.getStringList
+     * @return A list with all Spigot Servers online at this moment using the [RedisBungeeAPI].
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun getSpigotServers(): List<String> {
-        return Redis.getStringList("mkUtils", "BungeeAPI:Servers")
+    fun getSpigotServers(): Set<String> {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return RedisAPI.getMap("mkUtils:BungeeAPI:Servers").keys
     }
 
     /**
-     * It'll return the given [playerName] current Spigot Server name.
+     * Returns the given [playerName] current Spigot Server name.
      *
      * @param playerName the player to get his current connected Spigot Server name.
-     * @return the given [playerName] Spigot Server name. Can be null if the given [playerName] server is null.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see getSpigotServers
-     * @see getOnlinePlayers(serverName)
+     * @return The given [playerName] Spigot Server name. Can be null if the given [playerName] server is null.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
     fun getPlayerServer(playerName: String): String? {
-        var toReturn: String? = null
-        for (server in getSpigotServers()) {
-            val possibleServer = getOnlinePlayers(server).firstOrNull { it.equals(playerName, true) }
-            if (possibleServer != null) {
-                toReturn = server; break
-            } else continue
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        val playerNameLower = playerName.lowercase()
+        return RedisAPI.getMap("mkUtils:BungeeAPI:Servers").entries.firstOrNull {
+            it.value.split(";").filter { l -> l.isNotBlank() }.any { p -> p.lowercase() == playerNameLower }
+        }?.key
+    }
+
+    /**
+     * Returns all online players names logged-in in all online Spigot Severs.
+     *
+     * @return A set with all online players names. The set may be empty if there's no online player.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun getOnlinePlayers(): Set<String> {
+        return getOnlinePlayersServers().keys
+    }
+
+    /**
+     * Returns all servers and all online players in server.
+     *
+     * @return Map<ServerName, Set(PlayerName)> - with all online servers and players.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun getServersPlayers(): Map<String, Set<String>> {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        val toReturn = mutableMapOf<String, MutableSet<String>>()
+        val data = RedisAPI.getMap("mkUtils:BungeeAPI:Servers")
+        for ((server, playersRaw) in data) {
+            val players = playersRaw.split(";").filter { it.isNotBlank() }
+            toReturn.getOrPut(server) { mutableSetOf() }.addAll(players)
         }
         return toReturn
     }
 
     /**
-     * It'll return all online players names logged in on all registered Spigot Severs.
+     * Returns all online players names on logged-in in the given [serverName].
      *
-     * @return a list with all online players names. The list may be empty if there's no online player.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see getSpigotServers
-     * @see getOnlinePlayers(serverName)
+     * @param serverName the Spigot Server to get online players names.
+     * @return A set with all online players names in the given Spigot Server.
+     * This set may be empty if the given server doesn't exist or it's not online.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun getOnlinePlayers(): List<String> {
-        val players = mutableListOf<String>()
-        for (server in getSpigotServers()) {
-            players.addAll(getOnlinePlayers(server))
-        }
-        return players
+    fun getOnlinePlayers(serverName: String): Set<String> {
+        return getServersPlayers()[serverName] ?: emptySet()
     }
 
     /**
-     * It'll return all online players names on logged in on the given [serverName].
+     * Returns all online players and they current server.
      *
-     * @param serverName the Spigot Server to get online players names list.
-     * @return a list with all online players names on the given Spigot Server. The list may be empty if the given server doesn't exist.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see RedisAPI.getStringList
+     * @return Map<PlayerName, ServerName> - with all online players and they current server.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun getOnlinePlayers(serverName: String): List<String> {
-        if (!Redis.client!!.exists("mkUtils:BungeeAPI:Servers:$serverName:Players")) return emptyList()
-        return Redis.getStringList("mkUtils", "BungeeAPI:Servers:$serverName:Players")
+    fun getOnlinePlayersServers(): Map<String, String> {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        val toReturn = mutableMapOf<String, String>()
+        val serversPlayers = getServersPlayers()
+        for ((server, players) in serversPlayers) {
+            for (player in players) {
+                toReturn[player] = server
+            }
+        }
+        return toReturn
+    }
+
+    /**
+     * Returns all online players and spigot servers.
+     *
+     * @return Pair<Set(PlayerName), Set(ServerName)> - with all online players and spigot servers.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun getOnlinePlayersAndSpigotServers(): Pair<Set<String>, Set<String>> {
+        return Pair(getOnlinePlayers(), getSpigotServers())
+    }
+
+    /**
+     * Returns the online player amount of the given [serverName].
+     *
+     * @param serverName the Spigot Server to get online player amount.
+     * @return The player amount ([Int]). If the given [serverName] is not online or does not exists, 0 will be returned.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun getPlayerAmount(serverName: String): Int {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return getOnlinePlayers(serverName).size
+    }
+
+    /**
+     * Returns the global player amount (all connected players amount) in all spigot servers.
+     *
+     * @return The global player amount ([Int]).
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun getGlobalPlayerAmount(): Int {
+        return getOnlinePlayers().size
     }
 
     /**
@@ -108,156 +184,317 @@ object RedisBungeeAPI {
      * @param playerName the player to connect.
      * @param serverName the server to connect the given [playerName].
      * @return True if the request has been sent with success. Otherwise, false.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
     fun connectToServer(playerName: String, serverName: String): Boolean {
-        return Redis.sendEvent("mkUtils:BungeeAPI:Event:ConnectPlayer", "${playerName};${serverName}")
-    }
-
-    fun kickPlayer(playerName: String, kickReason: String): Boolean {
-        if (kickReason.contains(";")) error("kickReason cannot contains ';' because of internal separator")
-        return Redis.sendEvent("mkUtils:BungeeAPI:Event:KickPlayer", "${playerName};${kickReason}")
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return RedisAPI.sendEvent("mkUtils:BungeeAPI:Event:ConnectPlayer", "${playerName};${serverName}")
     }
 
     /**
-     * It'll send a text message (on chat) to the given [playerName], through Redis. The player will receive this message, regardless of the Proxy it is connected to.
+     * Kicks a player from network.
+     *
+     * @param playerName the player to kick.
+     * @param kickMessage the kick message to show.
+     * @param bypassPerm a bypass permission. If the given [playerName] have this permission, he'll not be kicked.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if the given [kickMessage] contains the character ';'.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun kickPlayer(playerName: String, kickMessage: String, bypassPerm: String = "nullperm"): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        if (kickMessage.contains(";")) error("kickMessage cannot contains ';' because of internal separator")
+        if (bypassPerm.contains(";")) error("bypassPerm cannot contains ';' because of internal separator")
+        return RedisAPI.sendEvent(
+            "mkUtils:BungeeAPI:Event:KickPlayer",
+            "${playerName};${kickMessage};${bypassPerm}"
+        )
+    }
+
+    /**
+     * It'll send a text message (on chat) to the given [playerName], through Redis.
+     * The player will receive this message, regardless of the Proxy it is connected to.
      *
      * @param playerName the player that will receive the given [message].
      * @param message the message to send to the given [playerName].
+     * @param neededPermission the permission that the player will NEED to have in order to receive the given [message].
+     * If nothing is given, the player will receive the message ignoring the permission check.
      * @return True if the request has been sent with success. Otherwise, false.
      * @throws IllegalStateException if the given [message] contains the character ';'.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see RedisAPI.sendEvent
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun sendMessage(playerName: String, message: String): Boolean {
-        if (message.contains(";")) error("message cannot contains ';' because of internal separator")
-        return Redis.sendEvent("mkUtils:BungeeAPI:Event:SendMsgToPlayer", "${playerName};${message}")
+    fun sendMessage(playerName: String, message: String, neededPermission: String = "nullperm"): Boolean {
+        return sendMessage(setOf(playerName), message, neededPermission)
     }
 
     /**
-     * It'll return the online player amount of the given [serverName].
+     * It'll send a text message (on chat) to the given [playersToSend], through Redis.
+     * The players will receive this message, regardless of the Proxy it is connected to.
      *
-     * @param serverName the Spigot Server to get online player amount.
-     * @return The player amount (Int). It'll return -1 if the given [serverName] is not online or does not exist.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see getOnlinePlayers(serverName)
-     */
-    fun getPlayerAmount(serverName: String): Int {
-        if (!Redis.client!!.exists("mkUtils:BungeeAPI:Servers:$serverName:Players")) return -1
-        return getOnlinePlayers(serverName).size
-    }
-
-    /**
-     * It'll return the global player amount (all connected players amount/size).
-     *
-     * @return The global player amount (Int).
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see getOnlinePlayers
-     */
-    fun getPlayerAmount(): Int {
-        return getOnlinePlayers().size
-    }
-
-    /**
-     * Kicks a specific player. The given [playerName] will be disconnected from his current Proxy Server.
-     *
-     * @param playerName the player name to kick.
-     * @param kickReason the message to kick this player. Cannot contains ';'.
-     * @param bypassPerm the bypass permission. If the player have this permission, he'll not be kicked.
+     * @param playersToSend a list of players to send the given [message].
+     * @param message the message to send to the given [playersToSend].
+     * @param neededPermission the permission that the player will NEED to have in order to receive the given [message].
+     * If nothing is given, the player will receive the message ignoring the permission check.
      * @return True if the request has been sent with success. Otherwise, false.
-     * @throws IllegalStateException if the given [kickReason] contains ';'.
-     * @throws IllegalStateException if the [RedisAPI] [client] or the [clientConnection] is null.
-     * @see RedisAPI.sendEvent
+     * @throws IllegalStateException if the given [message] contains the character ';'.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun kickPlayer(playerName: String, kickReason: String, bypassPerm: String? = "none"): Boolean {
-        if (kickReason.contains(";")) error("kickReason cannot contains ';' because of internal separator")
-        return Redis.sendEvent("mkUtils:BungeeAPI:Event:KickPlayer", "${playerName};${kickReason}")
+    fun sendMessage(playersToSend: Set<String>, message: String, neededPermission: String = "nullperm"): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        if (message.contains(";")) error("message cannot contains ';' because of internal separator")
+        if (neededPermission.contains(";")) error("neededPermission cannot contains ';' because of internal separator")
+        return RedisAPI.sendEvent(
+            "mkUtils:BungeeAPI:Event:SendMsgToPlayerList",
+            "${playersToSend.joinToString(",")};${message};${neededPermission}"
+        )
     }
 
     /**
-     * Get player amount of all Proxy(ies). (Global player amount)
+     * The spigot server with the given [playerName] will send the given [text] to him as an ActionBar.
      *
-     * @return The global player amount (Int).
-     * @see getGlobalPlayerAmount
+     * @param playerName the player to play the sound.
+     * @param text the text to be shown in player's ActionBar.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if [isEnabled] is False.
      */
-    fun getGlobalPlayerAmount(): Int {
-        return getOnlinePlayers().size
+    fun sendActionBar(playerName: String, text: String): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        if (text.contains(";")) error("ActionBar text cannot contains ';' because of internal separator")
+        return RedisAPI.sendEvent(
+            "mkUtils:RedisBungeeAPI:Event:SendActionBarToPlayer",
+            "${playerName};${text}"
+        )
     }
 
-    // EXTRA SECTION
+    /**
+     * The spigot server with the given [playerName] will play the given [bukkitSound] to him.
+     *
+     * @param playerName the player to play the sound.
+     * @param bukkitSound the sound to player. (Must be equivalent to the [Sound] enum)
+     * @param volume the sound volume. Default: 2f.
+     * @param pitch the sound pitch. Default: 1f.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun playSound(playerName: String, bukkitSound: String, volume: Float = 2f, pitch: Float = 1f): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return RedisAPI.sendEvent(
+            "mkUtils:RedisBungeeAPI:Event:PlaySoundToPlayer",
+            "${playerName};${bukkitSound};${volume};${pitch}"
+        )
+    }
 
-    var bukkitServerTask: BukkitTask? = null
+    /**
+     * Teleports the given [playerName] to the [targetName] (target as player in this case).
+     *
+     * @param playerName the player to teleport.
+     * @param targetName the target to teleport the [targetName].
+     * @param playTeleportSound if the sound of 'ENDERMAN_TELEPORT' should be player to the given [playerName] after teleport is complete.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun teleportPlayer(playerName: String, targetName: String, playTeleportSound: Boolean = true): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return RedisAPI.sendEvent(
+            "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToPlayer",
+            "${playerName};${targetName};${playTeleportSound}"
+        )
+    }
+
+    /**
+     * Teleports the given [playerName] to the target (target as Location in this case).
+     *
+     * @param playerName the player to teleport.
+     * @param world the world name of the location.
+     * @param x the X location.
+     * @param y the Y location.
+     * @param z the Z location.
+     * @param playTeleportSound if the sound of 'ENDERMAN_TELEPORT' should be player to the given [playerName] after teleport is complete.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun teleportPlayer(
+        playerName: String,
+        world: String,
+        x: Double,
+        y: Double,
+        z: Double,
+        playTeleportSound: Boolean = true
+    ): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        return RedisAPI.sendEvent(
+            "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToLocation",
+            "${playerName};${world};${x};${y};${z};${playTeleportSound}"
+        )
+    }
+
+    /**
+     * Forces the given [playerName] to send a message in the chat. ([Player.chat])
+     *
+     * You can force the player to run commands with this, the message just needs to start with '/'.
+     * Remember that the [msgToChat] cannot contains the character ';'.
+     *
+     * @param playerName the player to play the sound.
+     * @param msgToChat the message to force player to send in chat.
+     * @return True if the request has been sent with success. Otherwise, false.
+     * @throws IllegalStateException if [isEnabled] is False.
+     */
+    fun sendChat(playerName: String, msgToChat: String): Boolean {
+        if (!isEnabled) error("RedisBungeeAPI is not enabled.")
+        if (msgToChat.contains(";")) error("ActionBar text cannot contains ';' because of internal separator")
+        return RedisAPI.sendEvent(
+            "mkUtils:RedisBungeeAPI:Event:SendChat",
+            "${playerName};${msgToChat}"
+        )
+    }
+
+    // REDIS SUBS SECTION
+
+    // SPIGOT SUB - Start
+
+    var bukkitServerPubSubThread: Thread? = null
 
     fun bukkitServerOnEnable() {
-        bukkitServerTask = UtilsMain.instance.asyncTask {
-            /*
-            val connectionData = UtilsMain.instance.config["Redis", RedisConnectionData::class.java]
-            val extraJedis = RedisAPI.createExtraClient(connectionData)
-            RedisAPI.connectExtraClient(extraJedis, connectionData)
+        bukkitServerPubSubThread = thread {
+            RedisAPI.getExtraClient(RedisAPI.managerData).subscribe(
+                object : JedisPubSub() {
+                    override fun onMessage(channel: String, message: String) {
+                        val data = message.split(";")
+                        when (channel) {
+                            "mkUtils:RedisBungeeAPI:Event:PlaySoundToPlayer" -> {
+                                val player = Bukkit.getPlayer(data[0]) ?: return // data[0] = playerName
+                                player.runBlock {
+                                    val soundToPlay = Sound.valueOf(data[1].uppercase()) // data[1] = soundName
+                                    val volume = data[2].toFloat()
+                                    val pitch = data[3].toFloat()
+                                    player.playSound(player.location, soundToPlay, volume, pitch)
+                                }
+                            }
 
-            extraJedis.subscribe(object : JedisPubSub() {
-                override fun onMessage(channel: String, message: String) {
-                    if (channel != "mkUtils:RedisBungeeAPI:ServerData:Players") return
-                    val data = message.split(";")
-                    val server = data[0]
-                    val playersString = data[1]
-                    if (playersString.isEmpty()) {
-                        playersCache[server.lowercase()] = mutableListOf()
-                        return
-                    }
-                    val players = playersString.split(",")
-                    synchronized(syncMysqUpdatesKey) {
-                        playersCache[server.lowercase()] = players.toMutableList()
-                    }
-                }
-            }, "mkUtils:RedisBungeeAPI:ServerData:Players")
+                            "mkUtils:RedisBungeeAPI:Event:SendActionBarToPlayer" -> {
+                                val player = Bukkit.getPlayer(data[0]) ?: return // data[0] = playerName
+                                player.runBlock {
+                                    player.actionBar(data[1]) // data[1] = message
+                                }
+                            }
 
-             */
+                            "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToPlayer" -> {
+                                val player = Bukkit.getPlayer(data[0]) ?: return // data[0] = playerName
+                                UtilsMain.instance.syncTask {
+                                    player.runBlock {
+                                        val target = Bukkit.getPlayer(data[1]) ?: return@runBlock
+                                        player.teleport(target)
+                                        if (data[2].toBoolean()) { // data[2] = playTeleportSound
+                                            player.soundTP()
+                                        }
+                                    }
+                                }
+                            }
+
+                            "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToLocation" -> {
+                                val player = Bukkit.getPlayer(data[0]) ?: return // data[0] = playerName
+                                val worldName = data[1]
+                                UtilsMain.instance.syncTask {
+                                    player.runBlock {
+                                        val world =
+                                            Bukkit.getWorlds().firstOrNull { it.name.equals(worldName, true) } ?: error(
+                                                "Given world $worldName is not loaded"
+                                            )
+                                        val loc =
+                                            Location(world, data[2].toDouble(), data[3].toDouble(), data[4].toDouble())
+                                        player.teleport(loc)
+                                        if (data[5].toBoolean()) { // data[5] = playTeleportSound
+                                            player.soundTP()
+                                        }
+                                    }
+                                }
+                            }
+
+                            "mkUtils:RedisBungeeAPI:Event:SendChat" -> {
+                                val player = Bukkit.getPlayer(data[0]) ?: return // data[0] = playerName
+                                UtilsMain.instance.syncTask {
+                                    player.runBlock {
+                                        player.chat(data[1]) // data[1] = msgToChat
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, "mkUtils:RedisBungeeAPI:Event:PlaySoundToPlayer",
+                "mkUtils:RedisBungeeAPI:Event:SendActionBarToPlayer",
+                "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToPlayer",
+                "mkUtils:RedisBungeeAPI:Event:TeleportPlayerToLocation",
+                "mkUtils:RedisBungeeAPI:Event:SendChat"
+            )
         }
     }
 
-    var proxyServerTask: ScheduledTask? = null
+    // SPIGOT SUB - End
+
+    // PROXY SUB - Start
+
+    var proxyServerPubSubThread: Thread? = null
 
     fun proxyServerOnEnable() {
-
-        ProxyServer.getInstance().scheduler.runAsync(UtilsBungeeMain.instance) {
-            getExtraJedis().subscribe(
+        proxyServerPubSubThread = thread {
+            RedisAPI.getExtraClient(RedisAPI.managerData).subscribe(
                 object : JedisPubSub() {
                     override fun onMessage(channel: String, message: String) {
-                        if (channel == "mkUtils:BungeeAPI:Event:ConnectPlayer") {
-                            val data = message.split(";")
-                            val player = ProxyServer.getInstance().getPlayer(data[0]) ?: return
-                            val server = ProxyServer.getInstance().getServerInfo(data[1]) ?: return
-                            player.connect(server)
-                        }
-                        if (channel == "mkUtils:BungeeAPI:Event:KickPlayer") {
-                            val data = message.split(";")
-                            val player = ProxyServer.getInstance().getPlayer(data[0]) ?: return
-                            player.disconnect(Extra.getText(1, *data.toTypedArray()).toTextComponent())
-                        }
-                        if (channel == "mkUtils:BungeeAPI:Event:SendMsgToPlayer") {
-                            val data = message.split(";")
-                            val player = ProxyServer.getInstance().getPlayer(data[0]) ?: return
-                            player.sendMessage(Extra.getText(1, *data.toTypedArray()).toTextComponent())
-                        }
-                        if (channel == "mkUtils:BungeeAPI:Event:ServerPowerAction") {
-                            if (!UtilsBungeeMain.instance.config.getBoolean("RedisBungeeAPI.logSpigotServersPowerActions")) return
-                            val data = message.split(";")
-                            val server = data[0]
-                            val newState = data[1]
-                            val logMsg = if (newState == "on") "§aThe spigot server '$server' is now online." else
-                                "§cThe spigot server '$server' is now offline."
-                            UtilsBungeeMain.instance.log("")
-                            UtilsBungeeMain.instance.log("§6[RedisBungeeAPI] $logMsg")
-                            UtilsBungeeMain.instance.log("")
+                        val data = message.split(";")
+                        when (channel) {
+                            "mkUtils:BungeeAPI:Event:ConnectPlayer" -> {
+                                val player = ProxyServer.getInstance().getPlayer(data[0]) ?: return // data[0] = playerName
+                                player.runBlock {
+                                    val server = ProxyServer.getInstance().getServerInfo(data[1]) ?: return@runBlock // data[1] = serverName
+                                    player.connect(server)
+                                }
+                            }
+
+                            "mkUtils:BungeeAPI:Event:KickPlayer" -> {
+                                val player = ProxyServer.getInstance().getPlayer(data[0]) ?: return // data[0] = playerName
+                                player.runBlock {
+                                    val bypassPerm = data[2]
+                                    if (bypassPerm != "nullperm" && player.hasPermission(bypassPerm)) return@runBlock
+                                    player.disconnect(data[1].toTextComponent()) // data[1] = kickMsg
+                                }
+                            }
+
+                            "mkUtils:BungeeAPI:Event:SendMsgToPlayerList" -> {
+                                val msgToSend = data[1].toTextComponent()
+                                val neededPermission = data[2]
+                                players@ for (playerName in data[0].split(",").filter { it.isNotEmpty() }) { // data[0] = Player name list split with ';'.
+                                    val player = ProxyServer.getInstance().getPlayer(playerName) ?: continue@players
+                                    player.runBlock {
+                                        if (neededPermission == "nullperm" || player.hasPermission(neededPermission)) {
+                                            player.sendMessage(msgToSend)
+                                        }
+                                    }
+                                }
+                            }
+
+                            "mkUtils:BungeeAPI:Event:ServerPowerAction" -> {
+                                if (!UtilsBungeeMain.instance.config.getBoolean("RedisBungeeAPI.logSpigotServersPowerActions")) return
+                                val server = data[0]
+                                val newState = data[1]
+                                val logMsg = if (newState == "on") "§aSpigot server '$server' is now online." else
+                                    "§cSpigot server '$server' is now offline."
+                                UtilsBungeeMain.instance.log(
+                                    "",
+                                    "§6[RedisBungeeAPI] $logMsg",
+                                    ""
+                                )
+                            }
                         }
                     }
                 }, "mkUtils:BungeeAPI:Event:ConnectPlayer",
                 "mkUtils:BungeeAPI:Event:KickPlayer",
                 "mkUtils:BungeeAPI:Event:SendMsgToPlayer",
+                "mkUtils:BungeeAPI:Event:SendMsgToPlayerList",
                 "mkUtils:BungeeAPI:Event:ServerPowerAction"
             )
         }
     }
+
+    // PROXY SUB - End
 
 }

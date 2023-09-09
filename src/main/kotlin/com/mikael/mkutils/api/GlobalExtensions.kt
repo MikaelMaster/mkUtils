@@ -1,182 +1,222 @@
+@file:Suppress("WARNINGS")
+
 package com.mikael.mkutils.api
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.mikael.mkutils.api.mkplugin.MKPluginData
-import com.mikael.mkutils.api.redis.RedisAPI
+import com.mikael.mkutils.api.mkplugin.MKPlugin
+import com.mikael.mkutils.bungee.api.utilsBungeeMain
+import com.mikael.mkutils.spigot.api.utilsMain
 import net.eduard.api.lib.hybrid.Hybrid
-import net.eduard.api.lib.kotlin.resolve
+import net.eduard.api.lib.kotlin.fixColors
+import net.eduard.api.lib.modules.Extra
+import net.md_5.bungee.api.ProxyServer
 import net.md_5.bungee.api.chat.TextComponent
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
+import org.bukkit.Bukkit
+import org.bukkit.ChatColor
+import java.io.*
 import java.net.URL
 import java.text.NumberFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-
-/**
- * [UtilsManager] class shortcut.
- *
- * @see UtilsManager
- */
-val utilsmanager = resolve<UtilsManager>()
-
-/**
- * [RedisAPI] class shortcut.
- *
- * @see RedisAPI
- */
-val Redis = RedisAPI
+import java.util.zip.GZIPOutputStream
 
 /**
  * Key to sync MySQL async and sync updates.
+ * It's useful for plugins witch uses mkUtils as dependency ([MKPlugin]).
+ *
  * DO NOT USE IT BY YOURSELF IF YOU DO NOT KNOW WHAT YOU ARE DOING.
- * Instead, use [syncMysql] and give the block code that will be executed using this sync key.
  *
  * @see syncMysql
  */
 val syncMysqUpdatesKey = Any()
 
 /**
- * Use it to sync updates in mysql that interact with a local list/map to save a [MKPluginData].
- * You can call this function in a main or async thread, everything will be sync as the same.
- *
- * @param thing the block code to execute using the [syncMysqUpdatesKey].
- * @return True if the block code has been executed with no error. Otherwise, false.
- * @see syncMysqUpdatesKey
- */
-inline fun syncMysql(crossinline thing: (() -> Unit)): Boolean {
-    synchronized(syncMysqUpdatesKey) {
-        return try {
-            thing.invoke()
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
-        }
-    }
-}
-
-/**
  * @return True if the plugin is running on Bungeecord (Waterfall, etc). Otherwise, false.
+ * @author Mikael
  */
 val isProxyServer get() = Hybrid.instance.isBungeecord
 
 /**
  * Transforms a [String]? into a [TextComponent].
  *
+ * @param markNull if the given value is null and this is true, the text used will NOT be "", so "null" will be used.
  * @return [TextComponent] with the given [String], or empty if null is given.
+ * @author Mikael
+ * @author Koddy
  * @see TextComponent
  */
-fun String?.toTextComponent(): TextComponent {
-    return if (this != null) {
+fun String?.toTextComponent(fixColors: Boolean = true, markNull: Boolean = false): TextComponent {
+    val textComponent: TextComponent = if (this != null) {
         TextComponent(this)
     } else {
-        TextComponent("")
+        TextComponent(if (markNull) "null" else "")
     }
+
+    return if (fixColors) textComponent.fixColors() as TextComponent else textComponent
+}
+
+/**
+ * Formats the given [String] into a money ([Double]) format.
+ *
+ * @author Eduard
+ * @author KoddyDev
+ * @see Extra.fromMoneyToDouble
+ */
+fun String.getMoneyValue(): Double {
+    return Extra.fromMoneyToDouble(this)
 }
 
 /**
  * You can use this to format something as yours (Personal).
  *
+ * THIS FUNCTION WAS BUILT FOR English US language and may not make sense in others languages.
+ *
  * Example:
  *
  * * Notch.{[String.formatPersonal]} phone. -> Notch's phone.
- * * MKjubs.{[String.formatPersonal]} phone. -> MKjubs' phone
+ * * MKjubs.{[String.formatPersonal]} phone. -> MKjubs' phone.
  *
  * @return the new [String] as a Personal format.
+ * @author Mikael
  */
 fun String.formatPersonal(): String {
     return if (this.last() == 's') "${this}'" else "${this}'s"
 }
 
+fun String.compress(): String {
+    val str = this
+    val out = ByteArrayOutputStream()
+    val gzip = GZIPOutputStream(out)
+    gzip.write(str.toByteArray())
+    gzip.close()
+    return out.toString("UTF-8")
+}
+
 /**
- * The first letter (Char) of the given [String] will be changed to UpperCase.
+ * The given [String] will be grammar-fixed.
+ *
+ * Important: Characters considering append a net UpperCase lether at the moment is '.', '!' and '?'.
+ * If the word doesn't end with one of them, the next letter will not be 'Upper-cased'.
+ *
+ * THIS FUNCTION WAS BUILT FOR THESE LANGUAGES: Brazilian Portuguese, Portuguese and US English.
+ * This MAY work well with other languages, but was not tested for it.
  *
  * Example:
  *
- * * hi, how are you? -> Hi, how are you?
+ * - hi, how are you? -> Hi, how are you?
+ * - hi, how are you? i'm fine, thanks. -> Hi, how are you? I'm fine, thanks.
+ * - hey, Mikael! you here? -> Hey, Mikael! You here?
  *
- * @return the fixed [String].
+ * @return the grammar-fixed [String].
+ * @author Mikael
  */
 fun String.fixGrammar(): String {
-    val firstChar = this.first().uppercase()
-    val newString = StringBuilder(); newString.append(firstChar)
-    for ((index, char) in this.toCharArray().withIndex()) {
-        if (index == 0) continue
-        newString.append(char)
+    val newTextBuilder = StringBuilder()
+    for ((index, char) in this.toList().withIndex()) {
+        if (index == 0 || this.getOrNull((index - 2)) == '.' || this.getOrNull((index - 2)) == '!' || this.getOrNull((index - 2)) == '?') {
+            newTextBuilder.append(char.uppercase())
+            continue
+        }
+        newTextBuilder.append(char)
     }
-    return newString.toString()
+    return newTextBuilder.toString()
 }
 
+var FORMAT_SECOND_WORLD_TEXT_SINGLE = "second"
+var FORMAT_SECOND_WORLD_TEXT_MULTI = "seconds"
+
 /**
- * Will return a [String] with "seconds" if the given [Int] is different from 1. Otherwise, it will return "second".
+ * Will return a [String] with '[FORMAT_SECOND_WORLD_TEXT_MULTI]' if the given [Int] is different from 1. Otherwise, it will return '[FORMAT_SECOND_WORLD_TEXT_SINGLE]'.
  *
  * @return a [String] with "seconds" or "second". Can be '-1' if the given [Int] is negative (-1, -2, etc).
+ * @author Mikael
  */
 fun Int.formatSecondWorld(): String {
     if (this < 0) return "-1"
-    return if (this != 1) return "seconds" else "second"
+    return if (this == 1) return FORMAT_SECOND_WORLD_TEXT_SINGLE else FORMAT_SECOND_WORLD_TEXT_MULTI
 }
 
+var FORMAT_ENABLED_DISABLED_TEXT_ENABLED = "Enabled"
+var FORMAT_ENABLED_DISABLED_TEXT_DISABLED = "Disabled"
+
 /**
- * @return a [String] with '§aEnabled' or '§cDisabled', following the given [Boolean].
+ * @return a [String] with '[FORMAT_ENABLED_DISABLED_TEXT_ENABLED]' or '[FORMAT_ENABLED_DISABLED_TEXT_DISABLED]', following the given [Boolean].
+ * @author Mikael
  */
 fun Boolean.formatEnabledDisabled(colored: Boolean = true): String {
     val text = if (colored) {
-        if (this) "§aEnabled" else "§cDisabled"
+        if (this) "§a${FORMAT_ENABLED_DISABLED_TEXT_ENABLED}" else "§c${FORMAT_ENABLED_DISABLED_TEXT_DISABLED}"
     } else {
-        if (this) "Enabled" else "Disabled"
+        if (this) FORMAT_ENABLED_DISABLED_TEXT_ENABLED else FORMAT_ENABLED_DISABLED_TEXT_DISABLED
     }
     return text
 }
 
+var FORMAT_YES_NO_TEXT_YES = "Yes"
+var FORMAT_YES_NO_TEXT_NO = "No"
+
 /**
- * @return a [String] with '§aYes' or '§cNo', following the given [Boolean].
+ * @return a [String] with '[FORMAT_YES_NO_TEXT_YES]' or '[FORMAT_YES_NO_TEXT_NO]', following the given [Boolean].
+ * @author Mikael
  */
 fun Boolean.formatYesNo(colored: Boolean = true): String {
     val text = if (colored) {
-        if (this) "§aYes" else "§cNo"
+        if (this) "§a${FORMAT_YES_NO_TEXT_YES}" else "§c${FORMAT_YES_NO_TEXT_NO}"
     } else {
-        if (this) "Yes" else "No"
+        if (this) FORMAT_YES_NO_TEXT_YES else FORMAT_YES_NO_TEXT_NO
+    }
+    return text
+}
+
+var FORMAT_ON_OFF_TEXT_ON = "ON"
+var FORMAT_ON_OFF_TEXT_OFF = "OFF"
+
+/**
+ * @return a [String] with '[FORMAT_ON_OFF_TEXT_ON]' or '[FORMAT_ON_OFF_TEXT_OFF]' following the given [Boolean].
+ * @author Mikael
+ */
+fun Boolean.formatOnOff(colored: Boolean = true): String {
+    val text = if (colored) {
+        if (this) "§a${FORMAT_ON_OFF_TEXT_ON}" else "§c${FORMAT_ON_OFF_TEXT_OFF}"
+    } else {
+        if (this) FORMAT_ON_OFF_TEXT_ON else FORMAT_ON_OFF_TEXT_OFF
     }
     return text
 }
 
 /**
  * @return True if the given [Int] is multiple of [multBy]. Otherwise, false.
+ * @author Mikael
  */
 fun Int.isMultOf(multBy: Int): Boolean {
     return this % multBy == 0
 }
 
 /**
- * Formats a [Double] using the North America (US) format.
- *
- * Example:
- *
- * * 1000 -> 1,000
- * * 1065 -> 1,065
- *
- * @return a [String] with the formatted value.
+ * @return True if the given [Double] is multiple of [multBy]. Otherwise, false.
+ * @author Mikael
  */
-fun Double.formatEN(): String {
-    return NumberFormat.getNumberInstance(Locale.US).format(this)
+fun Double.isMultOf(multBy: Double): Boolean {
+    return this % multBy == 0.0
 }
 
 /**
- * Formats an [Int] using the North America (US) format.
+ * Formats a [Number] using the given [locale]. The default is [Locale.US]
  *
- * Example:
+ * Example ([Locale.US]):
  *
  * * 1000 -> 1,000
  * * 1065 -> 1,065
+ * * 1000.5 -> 1,000.50
  *
- * @return an [Int] with the formatted value.
+ * @return a [String] with the formatted value.
+ * @param locale the [Locale] to format the given [Number].
+ * @author Mikael
  */
-fun Int.formatEN(): String {
-    return this.toDouble().formatEN()
+fun Number.formatValue(locale: Locale = Locale.US): String {
+    val mkPlugin = if (isProxyServer) utilsBungeeMain else utilsMain
+    return NumberFormat.getNumberInstance(locale).format(this)
 }
 
 /**
@@ -192,6 +232,7 @@ fun Int.formatEN(): String {
  * * 5d 10h 30m (seconds is not here because it's 0s)
  *
  * @return a formatted [String] with the duration. Can be '-1' if an invalid [Long] is given.
+ * @author Mikael
  */
 fun Long.formatDuration(): String {
     return if (this <= 0L) {
@@ -229,31 +270,177 @@ fun Long.formatDuration(): String {
 }
 
 /**
- * Opens an [InputStreamReader] to build a [StringBuilder]. The returned value can be transformed to a JSON Object.
- *
- * @return the built [StringBuilder] with a 'possible' JSON Object.
- * @throws IOException
+ * @see URL.readText
  */
 fun URL.stream(): String {
-    this.openStream().use { input ->
-        val isr = InputStreamReader(input)
-        val reader = BufferedReader(isr)
-        val json = java.lang.StringBuilder()
-        var c: Int
-        while (reader.read().also { c = it } != -1) {
-            json.append(c.toChar())
+    return this.readText()
+}
+
+/**
+ * Used by 'URL.getJson()'.
+ */
+private val jsonParser = JsonParser()
+
+/**
+ * Returns a built [JsonObject] based on the returned response from the given [URL].
+ *
+ * @return A [JsonObject] from the given [URL].
+ * @throws JsonIOException
+ * @throws JsonSyntaxException
+ * @author Mikael
+ * @see URL.stream
+ * @see jsonParser
+ */
+fun URL.getJson(): JsonObject {
+    return jsonParser.parse(this.stream()).asJsonObject
+}
+
+/**
+ * @return The current server port ([Int]) running the given [MKPlugin].
+ * @author Mikael
+ */
+val MKPlugin.serverPort: Int
+    get() {
+        return if (isProxyServer) {
+            ProxyServer.getInstance().config.listeners.firstOrNull()?.queryPort
+                ?: error("Cannot get ProxyServer query port")
+        } else {
+            Bukkit.getPort()
         }
-        return json.toString()
+    }
+
+/**
+ * @return A new Lis([String]) with all given elements replaced.
+ * @author Mikael
+ * @see String.replace
+ */
+fun List<String>.replaceAll(oldValue: String, newValue: String, ignoreCase: Boolean = false): List<String> {
+    return this.map { it.replace(oldValue, newValue, ignoreCase) }
+}
+
+/**
+ * This function is more fast when comparing to [ChatColor.translateAlternateColorCodes] since this
+ * uses the Kotlin String Replace and ignore the next chars after '&' and '§'.
+ *
+ * @param justColors if false, others codes like '&l' (bold) will be translated. Default: True.
+ * @return a new [String] replacing all '&' to '§'.
+ * @author Mikael
+ * @see String.replace
+ */
+fun String.mineColored(justColors: Boolean = true): String {
+    return if (!justColors) {
+        this.replace("&", "§")
+    } else {
+        this.replace("&", "§")
+            .replace("§k", "", true)
+            .replace("§l", "", true)
+            .replace("§m", "", true)
+            .replace("§n", "", true)
+            .replace("§o", "", true)
+            .replace("§r", "", true)
     }
 }
 
 /**
- * @return a [JsonObject] from the [URL].
- * @throws JsonIOException
- * @throws JsonSyntaxException
- * @see URL.stream
- * @see JsonParser.parse
+ * @author KoddyDev
+ * @author Mikael
+ * @see String.mineColored
  */
-fun URL.getJson(): JsonObject {
-    return JsonParser().parse(this.stream()).asJsonObject
+fun List<String>.mineColored(justColors: Boolean = true): List<String> {
+    return this.map { it.mineColored(justColors) }
 }
+
+/**
+ * This will return the given [String] 'split' in lines, following the given [lineLength].
+ *
+ * @param lineLength the max length if each [String] that will be returned. Default: 50.
+ * @return a new [List] of [String] with the lines broken using the given [lineLength].
+ * @author Mikael
+ * @author KoddyDev
+ */
+fun String.breakLines(lineLength: Int = 50): List<String> {
+    val split = this.split(" ")
+    val lines = mutableListOf<String>()
+    for (word in split) {
+        val lastLine = lines.lastOrNull()
+        if (lastLine == null) {
+            lines.add(word)
+            continue
+        }
+        if (lastLine.length + word.length >= lineLength) {
+            lines.add(word)
+        } else {
+            lines[lines.lastIndex] = "$lastLine $word"
+        }
+    }
+    return lines
+}
+
+/**
+ * Please note that:
+ * - 1.0 = 100% of chance
+ * - 0.50 = 50% of chance
+ * - 0.05 = 5% of chance
+ *
+ * @return True if [Math.random] <= [Double]. Otherwise, false.
+ * @author Mikael
+ * @see Math.random
+ */
+fun Double.getProbability(): Boolean {
+    return Math.random() <= this
+}
+
+/**
+ * Runs the given [thing] using try catch.
+ * If an error occur, it'll be printed into console and false will be returned.
+ *
+ * @param thing the block code to run using try catch
+ * @return True if the given [thing] was run with no errors. Otherwise, false.
+ * @throws Exception as the possibl error itself.
+ */
+fun runTryCatch(thing: (() -> Unit)): Boolean {
+    return try {
+        thing.invoke()
+        true
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+        false
+    }
+}
+
+/**
+ * Serializes the given [Serializable] object into a [ByteArray].
+ *
+ * @throws IOException
+ * @author KoddyDev
+ */
+fun Serializable.toByteArray(): ByteArray {
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    val objectOutputStream = ObjectOutputStream(byteArrayOutputStream)
+    objectOutputStream.writeObject(this)
+    objectOutputStream.close()
+    return byteArrayOutputStream.toByteArray()
+}
+
+/**
+ * Deserializes the given [byteArray] to the given [T] from the [Serializable] object.
+ *
+ * @throws IOException
+ * @throws ClassNotFoundException
+ * @author KoddyDev
+ */
+@Throws(IOException::class, ClassNotFoundException::class)
+fun <T : Serializable> fromByteArray(byteArray: ByteArray): T {
+    return ByteArrayInputStream(byteArray).use { byteArrayInputStream ->
+        ObjectInputStream(byteArrayInputStream).use { objectInput ->
+            objectInput.readObject() as T
+        }
+    }
+}
+
+// Used by 'Player.clearChat()' and 'ProxiedPlayer.clearChat()'.
+internal val chatClear = mutableListOf<String>().apply {
+    repeat(150) {
+        this.add("§r")
+    }
+}.toTypedArray()

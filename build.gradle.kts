@@ -1,12 +1,12 @@
 plugins {
     java
-    kotlin("jvm") version "1.8.22"
+    kotlin("jvm") version "1.9.10"
     `maven-publish`
     id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 
 group = "com.mikael"
-version = "1.2"
+version = "2.0"
 
 java.sourceCompatibility = JavaVersion.VERSION_17
 java.targetCompatibility = JavaVersion.VERSION_17
@@ -48,7 +48,7 @@ tasks {
         kotlinOptions.jvmTarget = "17"
     }
     shadowJar {
-        archiveVersion.set("1.2")
+        archiveVersion.set("2.0")
         archiveBaseName.set("mkUtils")
         destinationDirectory.set(
             file("C:\\Users\\Usuario\\Desktop\\Meus Plugins - Jars\\")

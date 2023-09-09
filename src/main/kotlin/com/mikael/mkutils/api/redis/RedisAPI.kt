@@ -1,466 +1,459 @@
 package com.mikael.mkutils.api.redis
 
-import com.mikael.mkutils.api.isProxyServer
-import com.mikael.mkutils.api.redis.RedisAPI.client
-import com.mikael.mkutils.api.redis.RedisAPI.connectClient
-import com.mikael.mkutils.api.redis.RedisAPI.connectExtraClient
-import com.mikael.mkutils.api.redis.RedisAPI.createClient
-import com.mikael.mkutils.api.redis.RedisAPI.createExtraClient
-import com.mikael.mkutils.api.redis.RedisAPI.usedRedisConnectionData
-import com.mikael.mkutils.api.toTextComponent
-import com.mikael.mkutils.bungee.UtilsBungeeMain
-import com.mikael.mkutils.spigot.UtilsMain
-import net.eduard.api.lib.modules.Mine
-import net.eduard.api.lib.plugin.IPluginInstance
-import net.md_5.bungee.api.ProxyServer
-import redis.clients.jedis.Connection
+import com.mikael.mkutils.api.redis.RedisAPI.getExtraClient
+import com.mikael.mkutils.api.redis.RedisAPI.managerData
+import com.mikael.mkutils.api.runTryCatch
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
 
 /**
- * mkUtils [RedisAPI] (current using [Jedis] Redis Client v4.2.3)
+ * mkUtils [RedisAPI]
  *
- * Remember that in the mkUtils config you can enable this API automatically by setting Redis 'isEnabled' to true.
- * You should always create a single Redis Client ([createClient]), and connect it ([connectClient]), to use in all your plugins.
+ * Remember that to use this API you should mark 'RedisAPI.isEnabled' to True in [UtilsMain.config] file.
  *
- * To create pub-subs you can call an Async [Thread], and use [createExtraClient], then [connectExtraClient].
- * You can use the [usedRedisConnectionData] for these 'extra' clients.
- *
- * IMPORTANT: NEVER call default RedisAPI functions that uses the default [client] using Async. To do it, use [createExtraClient], then [connectExtraClient].
- * This 'extra' client should be used just inside that created Async [Thread].
+ * To create a Redis Sub you should create a [Thread] and use [getExtraClient].
+ * The [RedisConnectionData] required to connect an extra client is the [managerData].
+ * Once you have an extra client inside the created [Thread], just register a Redis Sub using it.
  *
  * @author Mikael
  * @see RedisConnectionData
+ * @see Jedis
+ * @see JedisPool
  */
+@Suppress("WARNINGS")
 object RedisAPI {
 
     var useToSyncBungeePlayers: Boolean = false
     lateinit var managerData: RedisConnectionData
-    var client: Jedis? = null
-    var clientConnection: Connection? = null
-    var usedRedisConnectionData: RedisConnectionData? = null
+
+    lateinit var jedisPoolConfig: GenericObjectPoolConfig<Jedis>
+    lateinit var jedisPool: JedisPool
 
     /**
-     * Creates a new Redis client (Jedis) using the data provided by [RedisConnectionData].
-     * After creation sets the [client] variable to the new created client and [usedRedisConnectionData] to the provided [RedisConnectionData].
-     *
-     * @param connectionData A [RedisConnectionData] to create the Redis Client.
-     * @return A Redis Client ([Jedis]).
-     * @throws IllegalStateException if the '[RedisConnectionData.isEnabled]' of the given [RedisConnectionData] is false.
-     * @see connectClient
+     * Internal.
      */
-    fun createClient(connectionData: RedisConnectionData): Jedis {
-        if (!connectionData.isEnabled) error("RedisConnectionData isEnabled must not be false")
-        val jedis = Jedis("http://${connectionData.host}:${connectionData.port}/")
-        usedRedisConnectionData = connectionData
-        client = jedis
-        return client!!
-    }
-
-    /**
-     * Connects the Redis [client] (Jedis) if it is not already connected.
-     * If the client is already connected, it will just return the existing connection.
-     *
-     * @param force if is to force a new connection, ignoring if the client is already connected.
-     * @return An existing Jedis [Connection].
-     * @throws IllegalStateException if the [RedisAPI.client] is null.
-     * @see createClient
-     */
-    fun connectClient(force: Boolean = false): Connection {
-        if (client == null) error("Cannot get redis client (Jedis)")
-        if (usedRedisConnectionData == null) error("Cannot get RedisConnectionData to connect the client")
-        if (!force) {
-            if (clientConnection != null) {
-                return clientConnection!!
-            }
-        }
-        if (usedRedisConnectionData!!.usePass) {
-            client!!.auth(usedRedisConnectionData!!.pass)
-        }
-        client!!.connect()
-        clientConnection = client!!.connection
-        return clientConnection!!
-    }
-
-    /**
-     * Closes the existing connection to the Redis server, and then sets the variable [clientConnection], [client] and [usedRedisConnectionData] to null.
-     */
-    fun finishConnection() {
-        clientConnection?.close()
-        clientConnection = null
-        client = null
-        usedRedisConnectionData = null
-    }
-
-    /**
-     * Checks if the Redis [client] (Jedis) is created and connected.
-     *
-     * @return True if the redis client is created and connected. Otherwise, false.
-     */
-    fun isInitialized(): Boolean {
-        if (client == null || clientConnection == null) return false
+    internal fun onEnablePrepareRedisAPI(): Boolean {
+        val config = GenericObjectPoolConfig<Jedis>()
+        config.maxTotal = managerData.jedisPoolMaxClients
+        config.maxIdle = managerData.jedisPoolMaxIdle
+        config.minIdle = managerData.jedisPoolMinIdle
+        config.testWhileIdle = managerData.jedisPoolTestWhileIdle
+        jedisPoolConfig = config
+        jedisPool = JedisPool(
+            jedisPoolConfig,
+            managerData.host,
+            managerData.port,
+            managerData.jedisPoolMaxTimeout,
+            managerData.pass
+        )
         return true
     }
 
-    private fun flushConnection(): Boolean {
-        if (!testPing()) {
-            if (isProxyServer) {
-                UtilsBungeeMain.instance.log("§cThe connection with redis server is broken. :c")
-                try {
-                    UtilsBungeeMain.instance.log("§eTrying to reconnect to redis server...")
-                    createClient(managerData) // Recreate a redis client
-                    connectClient(true) // Reconnect redis client
-                    UtilsBungeeMain.instance.log("§aReconnected to redis server! (Some data may not have been synced)")
-                    return true
-                } catch (ex: Exception) {
-                    for (playerLoop in ProxyServer.getInstance().players) {
-                        playerLoop.disconnect("§c[${UtilsBungeeMain.instance.systemName}] An internal error occurred. :c".toTextComponent())
-                    }
-                    error("Cannot reconnect to redis server, disconnecting players. Error: ${ex.stackTrace}")
-                }
-            } else {
-                UtilsMain.instance.log("§cThe connection with redis server is broken. :c")
-                try {
-                    UtilsMain.instance.log("§eTrying to reconnect to redis server...")
-                    createClient(managerData) // Recreate a redis client
-                    connectClient(true) // Reconnect redis client
-                    UtilsMain.instance.log("§aReconnected to redis server! (Some data may not have been synced)")
-                    return true
-                } catch (ex: Exception) {
-                    for (playerLoop in Mine.getPlayers()) {
-                        playerLoop.kickPlayer("§c[${UtilsMain.instance.systemName}] An internal error occurred. :c")
-                    }
-                    error("Cannot reconnect to redis server, disconnecting players. Error: ${ex.stackTrace}")
-                }
-            }
-        } else {
-            return true
+    /**
+     * Checks if the [RedisAPI] has been started and probably is working correctly.
+     *
+     * @return True if the [jedisPoolConfig] and [jedisPool] has been set. Otherwise, false.
+     */
+    fun isInitialized(): Boolean {
+        return this::jedisPoolConfig.isInitialized && this::jedisPool.isInitialized
+    }
+
+    /**
+     * Verify if a data exists in the redis server.
+     *
+     * To verify if multiple keys exists at the same time, use [existsAll].
+     *
+     * @param key the key to verify if the value exists.
+     * @return True if the data exists. Otherwise, false.
+     * @throws IllegalStateException if [isInitialized] is false.
+     */
+    fun exists(key: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.exists(key)
+            pipelined.sync()
+            return response.get()
         }
     }
 
     /**
-     * Verify if a data existis on the Redis server.
+     * Verify if multiple keys exits in redis server.
      *
-     * @param key the key to verify if the value existis.
-     * @return True if the data existis. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * To verify if a single key exists use [exists].
+     *
+     * @param keys the keys to verify if them exists.
+     * @return True if all given [keys] exists. Otherwise, false.
+     * @throws IllegalStateException if [isInitialized] is false.
      */
-    fun existis(key: String): Boolean {
-        if (!isInitialized()) error("Cannot insert any data to a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        return client!!.exists(key)
+    fun existsAll(vararg keys: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.exists(*keys)
+            pipelined.sync()
+            return response.get() == keys.size.toLong()
+        }
     }
 
     /**
      * Inserts a data into redis server using the given [key] and [value].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to push the value.
      * @param value the value to be pushed into redis server. The value will always be converted to string.
      * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @see Jedis.set
      */
-    fun insert(plugin: IPluginInstance, key: String, value: Any): Boolean {
-        if (!isInitialized()) error("Cannot insert any data to a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
-            client!!.set("${plugin.systemName}:${key}", value.toString())
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
+    fun insert(key: String, value: Any): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.set(key, value.toString())
+                pipelined.sync()
+            }
+        }
+    }
+
+    /**
+     * Inserts a map using the given [key] into redis server.
+     *
+     * @param key the key to push the value.
+     * @param value the [Map] to be pushed into redis server.
+     * @return True if the insert was completed. Otherwise, false.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @see Jedis.hset
+     */
+    fun insertMap(key: String, value: Map<String, String>): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.hset(key, value)
+                pipelined.sync()
+            }
+        }
+    }
+
+    /**
+     * Inserts a map using the given [key] into redis server.
+     *
+     * @param key the key to push the value.
+     * @param mapKey the map key to be set.
+     * @param mapValue the map value to be set.
+     * @return True if the insert was completed. Otherwise, false.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @see Jedis.hset
+     */
+    fun insertMapValue(key: String, mapKey: String, mapValue: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.hsetnx(key, mapKey, mapValue)
+                pipelined.sync()
+            }
         }
     }
 
     /**
      * Inserts a String List into the redis server using the given [key] and [stringList].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to push the value.
      * @param stringList the String List to be pushed into redis server.
      * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
      * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * @throws IllegalStateException if [isInitialized] is false.
      */
     fun insertStringList(
-        plugin: IPluginInstance,
         key: String,
         stringList: MutableList<String>,
         useExistingData: Boolean = true
     ): Boolean {
-        if (!isInitialized()) error("Cannot insert any data to a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
             if (useExistingData) {
-                if (existis("${plugin.systemName}:${key}")) {
-                    for (string in getStringList(plugin, key)) {
-                        stringList.add(string)
-                    }
+                for (string in getStringList(key)) {
+                    stringList.add(string)
                 }
             }
             val stringBuilder = StringBuilder()
             for ((index, string) in stringList.withIndex()) {
                 stringBuilder.append(string)
-                if (index != stringList.size.minus(1)) stringBuilder.append(";")
+                if (index != stringList.lastIndex) stringBuilder.append(";")
             }
-            client!!.set("${plugin.systemName}:${key}", stringBuilder.toString())
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
+            insert(key, stringBuilder.toString())
         }
     }
 
     /**
-     * Inserts a String List into the redis server using the given [key] and [stringList].
-     *
-     * @param pluginName the plugin name owner of the data.
-     * @param key the key to push the value.
-     * @param stringList the String List to be pushed into redis server.
-     * @param useExistingData if is to use the existing redis list data. If you want to send this list with just the given `stringList`, mark this as false.
-     * @return True if the insert was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * Hmm ?
      */
-    fun insertStringList(
-        pluginName: String,
+    fun removeFromStringList(
         key: String,
-        stringList: MutableList<String>,
-        useExistingData: Boolean = true
+        stringListToRemove: MutableList<String>
     ): Boolean {
-        if (!isInitialized()) error("Cannot insert any data to a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
-            if (useExistingData) {
-                if (existis("${pluginName}:${key}")) {
-                    for (string in getStringList(pluginName, key)) {
-                        stringList.add(string)
-                    }
-                }
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            val data = getStringList(key).toMutableList()
+            if (data.isEmpty()) return@runTryCatch
+            data.removeAll(stringListToRemove)
+            insertStringList(key, data, false)
+        }
+    }
+
+    /**
+     * Get all data in redis liked with given [keys].
+     *
+     * This method is MUCH faster than using a For with [getString].
+     *
+     * @param keys the keys to get linked data from redis server.
+     * @return all data for the given [keys]. If one of the given [keys] does not exits, 'nil' will be
+     * returned as the value of that specific key.
+     * @see Jedis.mget
+     */
+    fun getAllData(vararg keys: String): List<String> {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.mget(*keys)
+            pipelined.sync()
+            return response.get()
+        }
+    }
+
+    /**
+     * @see Jedis.hgetAll
+     */
+    fun getMap(key: String): Map<String, String> {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.hgetAll(key)
+            pipelined.sync()
+            return response.get()
+        }
+    }
+
+    /**
+     * @see Jedis.hget
+     */
+    fun getMapValue(key: String, mapKey: String): String? {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.hget(key, mapKey)
+            pipelined.sync()
+            val value = response.get()
+            return if (value != "nil") value else null
+        }
+    }
+
+    /**
+     * @see Jedis.hdel
+     */
+    fun mapDeleteAll(key: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.hdel(key)
+                pipelined.sync()
             }
-            val stringBuilder = StringBuilder()
-            for ((index, string) in stringList.withIndex()) {
-                stringBuilder.append(string)
-                if (index != stringList.size.minus(1)) stringBuilder.append(";")
+        }
+    }
+
+    /**
+     * @see Jedis.hdel
+     */
+    fun mapDelete(key: String, mapKey: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.hdel(key, mapKey)
+                pipelined.sync()
             }
-            client!!.set("${pluginName}:${key}", stringBuilder.toString())
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
         }
     }
 
     /**
      * Returns a String from redis server using the given [key].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return A String from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NullPointerException if the data retorned is null.
+     * @return A String from the redis server. Null if the data does not exist.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NullPointerException if the returned data is null.
      */
-    fun getString(plugin: IPluginInstance, key: String): String {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        return client!!.get("${plugin.systemName}:${key}")
+    fun getString(key: String): String? {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        jedisPool.resource.use { resource ->
+            val pipelined = resource.pipelined()
+            val response = pipelined.get(key)
+            pipelined.sync()
+            val value = response.get()
+            return if (value != "nil") value else null
+        }
+    }
+
+    /**
+     * Returns a String from redis server using the given [key].
+     * If the returned data from redis is null, the given [defaultValue] will be set for the given [key],
+     * and the [defaultValue] will be returned.
+     *
+     * @param key the key to search on redis server for a data.
+     * @param defaultValue the value to associate with the [key] if there's no data for this [key] in redis server.
+     * @return A String from the redis server, or the [defaultValue] if there's no data for the given [key].
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NullPointerException if the returned data is null.
+     */
+    fun getOrPut(key: String, defaultValue: Any): String {
+        var data = getString(key)
+        if (data == null) {
+            insert(key, defaultValue)
+            data = defaultValue.toString()
+        }
+        return data
     }
 
     /**
      * Returns a String List from redis server using the given [key].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return A String List from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NullPointerException if the data retorned is null.
+     * @return A String List from the redis server. Empty list of the data dos not exist.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NullPointerException if the data returned is null.
      */
-    fun getStringList(plugin: IPluginInstance, key: String): List<String> {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        if (!existis("${plugin.systemName}:${key}")) return emptyList()
-        return client!!.get("${plugin.systemName}:${key}").split(";").filter { it.isNotEmpty() }
+    fun getStringList(key: String): List<String> {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return getString(key)?.split(";")?.filter { it.isNotBlank() } ?: emptyList()
     }
 
     /**
-     * Returns a String List from redis server using the given [key].
+     * Returns an Int from redis server using the given [key].
      *
-     * @param pluginName the plugin name owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return A String List from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NullPointerException if the data retorned is null.
+     * @return An Int? from the redis server. Null if the data does not exist.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NumberFormatException if the returned data is null or is not an Int.
      */
-    fun getStringList(pluginName: String, key: String): List<String> {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        if (!existis("${pluginName}:${key}")) return emptyList()
-        return client!!.get("${pluginName}:${key}").split(";").filter { it.isNotEmpty() }
-    }
-
-    /**
-     * Returns a Int from redis server using the given [key].
-     *
-     * @param plugin the plugin instance owner of the data.
-     * @param key the key to search on redis server for a data.
-     * @return A Int from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NumberFormatException if the retorned data is null or is not a Int.
-     */
-    fun getInt(plugin: IPluginInstance, key: String): Int {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        return client!!.get("${plugin.systemName}:${key}").toInt()
+    fun getInt(key: String): Int? {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return getString(key)?.toInt()
     }
 
     /**
      * Returns a Double from redis server using the given [key].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return A Double from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NumberFormatException if the retorned data is null or is not a Double.
+     * @return A Double? from the redis server. Null if the data does not exist.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NumberFormatException if the returned data is null or is not an Int.
      */
-    fun getDouble(plugin: IPluginInstance, key: String): Double {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        return client!!.get("${plugin.systemName}:${key}").toDouble()
+    fun getDouble(key: String): Double? {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return getString(key)?.toDouble()
     }
 
     /**
      * Returns a Long from redis server using the given [key].
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return A Long from the redis server.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     * @throws NumberFormatException if the retorned data is null or is not a Long.
+     * @return A Long? from the redis server. Null if the data does not exist.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws NumberFormatException if the returned data is null or is not an Int.
      */
-    fun getLong(plugin: IPluginInstance, key: String): Long {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        if (!flushConnection()) error("RedisAPI main client connection is broken")
-        return client!!.get("${plugin.systemName}:${key}").toLong()
+    fun getLong(key: String): Long? {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return getString(key)?.toLong()
     }
 
     /**
-     * Updates a counter value on Redis server.
+     * This will return a value for the given [key] transformed into the given [C] ([Any]).
      *
-     * @param plugin the plugin instance owner of the data.
      * @param key the key to search on redis server for a data.
-     * @return True if the counter update was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * @return A Data as [C] from the redis server.
+     * @throws IllegalStateException if [isInitialized] is false.
+     * @throws ClassCastException if the returned value cannot be transformed into the given [C] ([Any]).
      */
-    fun updateCounter(plugin: IPluginInstance, key: String, newCount: Int): Boolean {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
-            if (!existis("${plugin.systemName}:${key}")) {
-                client!!.set("${plugin.systemName}:${key}", newCount.toString())
-            } else {
-                val currentCount = getInt(plugin, "${plugin.systemName}:${key}")
-                client!!.set("${plugin.systemName}:${key}", currentCount.plus(newCount).toString())
+    inline fun <reified C : Any> getDataAs(key: String): C {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        val data = getString(key)
+        if (data !is C) error("Returned data '${data}' cannot be cast as the given custom class.")
+        return data
+    }
+
+    /**
+     * Deletes a data from redis server.
+     *
+     * @param key the key to delete from redis.
+     * @return True if the value was successfully deleted. Otherwise, false.
+     */
+    fun delete(key: String): Boolean {
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                val pipelined = resource.pipelined()
+                pipelined.del(key)
+                pipelined.sync()
             }
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
         }
     }
 
     /**
-     * Updates a counter value on Redis server.
-     * This fun can be useful if you don't have acess to the plugin instance owner of the data.
-     *
-     * @param pluginName the name of the plugin owner of the data. (Not in LowerCase)
-     * @param key the key to search on redis server for a data.
-     * @param countToSum the value (Int) to sum on Redis server.
-     * @return True if the counter update was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
-     */
-    fun updateCounter(pluginName: String, key: String, countToSum: Int): Boolean {
-        if (!isInitialized()) error("Cannot get any data from a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
-            if (!existis("${pluginName}:${key}")) {
-                client!!.set("${pluginName}:${key}", countToSum.toString())
-            } else {
-                val currentCount = client!!.get("${pluginName}:${key}").toInt()
-                client!!.set("${pluginName}:${key}", currentCount.plus(countToSum).toString())
-            }
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
-        }
-    }
-
-    /**
-     * Sends a ping to Redis server.
+     * Sends a ping to redis server.
      *
      * @return True if the ping is answered. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * @throws IllegalStateException if [isInitialized] is false.
      */
     fun testPing(): Boolean {
-        if (!isInitialized()) error("Cannot send ping to a null redis server")
-        return try {
-            // if (!flushConnection()) error("RedisAPI main client connection is broken") // Invalid here
-            client!!.ping()
-            true
-        } catch (ex: Exception) {
-            false
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                resource.ping()
+            }
         }
     }
 
     /**
-     * Send an 'event' to Redis server.
+     * Sends an 'event' to redis server.
      *
-     * @param channel the redis channel name to send the event.
+     * @param channel the channel name to send the event.
      * @param message the message that will be sent with the event.
      * @return True if the event sent was completed. Otherwise, false.
-     * @throws IllegalStateException if the Redis [client] or the [clientConnection] is null.
+     * @throws IllegalStateException if [isInitialized] is false.
      */
-    // (Un)deprecated since mkUtils v1.1-final.
-    // @Deprecated("Deprecated since mkUtils v1.1; Use your own method instead.", ReplaceWith("client!!.publish(channel, message)"))
     fun sendEvent(channel: String, message: String): Boolean {
-        if (!isInitialized()) error("Cannot send an event message to a null redis server")
-        return try {
-            if (!flushConnection()) error("RedisAPI main client connection is broken")
-            client!!.publish(channel, message)
-            true
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            false
+        if (!isInitialized()) error("RedisAPI is not initialized.")
+        return runTryCatch {
+            jedisPool.resource.use { resource ->
+                resource.publish(channel, message)
+            }
         }
     }
 
-    // EXTRA CLIENTS SECTION
+    // Extra Client Section
 
     /**
-     * Creates a new Redis client (Jedis) using the data provided by [RedisConnectionData].
+     * Creates a new [Jedis] and connect it using the given [RedisConnectionData].
+     * This is usefully to create pub-subs.
      *
-     * @param connectionData A [RedisConnectionData] to create the Redis Client.
-     * @return A Redis Client ([Jedis]).
-     * @throws IllegalStateException if the '[RedisConnectionData.isEnabled]' of the given [RedisConnectionData] is false.
-     * @see connectExtraClient
-     */
-    fun createExtraClient(connectionData: RedisConnectionData): Jedis {
-        if (!connectionData.isEnabled) error("RedisConnectionData isEnabled must not be false")
-        return Jedis("http://${connectionData.host}:${connectionData.port}/")
-    }
-
-    /**
-     * Connects the given [jedisClient].
+     * This method does NOT get a [Jedis] from the [jedisPool], this will create a new [Jedis] instance,
+     * and then connect it using the given [connectionData] properties.
      *
-     * @return An existing Jedis [Connection].
-     * @throws IllegalStateException if the '[RedisConnectionData.isEnabled]' of the given [RedisConnectionData] is false.
-     * @see createExtraClient
+     * @param connectionData A [RedisConnectionData] to create a new [Jedis].
+     * @return A new connected [Jedis].
+     * @throws IllegalStateException if the [RedisConnectionData.isEnabled] of the given [connectionData] is false.
      */
-    fun connectExtraClient(jedisClient: Jedis, connectionData: RedisConnectionData): Connection {
-        if (!connectionData.isEnabled) error("RedisConnectionData isEnabled must not be false")
+    fun getExtraClient(connectionData: RedisConnectionData): Jedis {
+        if (!connectionData.isEnabled) error("Given RedisConnectionData isEnabled should not be False.")
+        val jedis = Jedis("http://${connectionData.host}:${connectionData.port}/")
         if (connectionData.usePass) {
-            jedisClient.auth(connectionData.pass)
+            jedis.auth(connectionData.pass)
         }
-        jedisClient.connect()
-        return jedisClient.connection
+        jedis.connect()
+        return jedis
     }
-
 }

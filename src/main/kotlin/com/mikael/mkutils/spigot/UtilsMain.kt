@@ -1,13 +1,12 @@
 package com.mikael.mkutils.spigot
 
 import com.mikael.mkutils.api.UtilsManager
-import com.mikael.mkutils.api.formatEN
+import com.mikael.mkutils.api.formatValue
 import com.mikael.mkutils.api.mkplugin.MKPlugin
 import com.mikael.mkutils.api.mkplugin.MKPluginSystem
 import com.mikael.mkutils.api.redis.RedisAPI
 import com.mikael.mkutils.api.redis.RedisBungeeAPI
 import com.mikael.mkutils.api.redis.RedisConnectionData
-import com.mikael.mkutils.api.utilsmanager
 import com.mikael.mkutils.spigot.api.lib.craft.CraftAPI
 import com.mikael.mkutils.spigot.api.lib.menu.MenuSystem
 import com.mikael.mkutils.spigot.api.lib.menu.example.ExampleMenuCommand
@@ -27,7 +26,6 @@ import net.eduard.api.lib.database.HybridTypes
 import net.eduard.api.lib.database.SQLManager
 import net.eduard.api.lib.hybrid.BukkitServer
 import net.eduard.api.lib.hybrid.Hybrid
-import net.eduard.api.lib.kotlin.resolvePut
 import net.eduard.api.lib.kotlin.store
 import net.eduard.api.lib.manager.CommandManager
 import net.eduard.api.lib.menu.Menu
@@ -49,7 +47,6 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     }
 
     private var mySqlQueueUpdater: BukkitTask? = null
-    lateinit var manager: UtilsManager
     lateinit var config: Config
 
     init {
@@ -58,11 +55,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
     override fun onEnable() {
         instance = this@UtilsMain
-        val start = System.currentTimeMillis()
+        val loadStart = System.currentTimeMillis()
 
         log("§eLoading basics...")
-        manager = resolvePut(UtilsManager())
-        manager.mkUtilsVersion = this.description.version
+        UtilsManager.mkUtilsVersion = this.description.version
         prepareStorageAPI() // EduardAPI
         HybridTypes // {static} # Hybrid types - Load
         BukkitTypes.register() // Bukkit types - Load
@@ -99,8 +95,9 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         // Listeners
         GeneralListener().registerListener(this)
 
-        val endTime = System.currentTimeMillis() - start
-        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)"); MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
+        val endTime = System.currentTimeMillis() - loadStart
+        log("§aPlugin loaded with success! (Time taken: §f${endTime}ms§a)")
+        MKPluginSystem.loadedMKPlugins.add(this@UtilsMain)
 
         syncDelay(20) {
             log("§aPreparing MineReflect...")
@@ -117,10 +114,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             }
 
             // MySQL queue updater timer
-            if (utilsmanager.sqlManager.hasConnection()) {
+            if (UtilsManager.sqlManager.hasConnection()) {
                 mySqlQueueUpdater = asyncTimer(20, 20) {
-                    if (!utilsmanager.sqlManager.hasConnection()) return@asyncTimer
-                    utilsmanager.sqlManager.runChanges()
+                    if (!UtilsManager.sqlManager.hasConnection()) return@asyncTimer
+                    UtilsManager.sqlManager.runChanges()
                 }
             }
         }
@@ -134,14 +131,9 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
             }
         }
 
-        if (RedisAPI.useToSyncBungeePlayers) {
+        if (RedisBungeeAPI.isEnabled) {
             log("§6[RedisBungeeAPI] §eMarking server as disabled on Redis...")
-            val newServerList = mutableListOf(
-                *RedisBungeeAPI.getSpigotServers().toTypedArray()
-            ); newServerList.removeIf { it == RedisBungeeAPI.spigotServerName }
-            RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
-            RedisAPI.client!!.del("mkUtils:BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players")
-            RedisAPI.sendEvent("mkUtils:BungeeAPI:Event:ServerPowerAction", "${RedisBungeeAPI.spigotServerName};off")
+            RedisBungeeAPI.updateSpigotServerState(false)
         }
 
         log("§eUnloading APIs...")
@@ -150,61 +142,46 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
         log("§eUnloading systems...")
         BungeeAPI.controller.unregister() // EduardAPI
-        RedisBungeeAPI.bukkitServerTask?.cancel()
-        RedisAPI.finishConnection()
+        RedisBungeeAPI.bukkitServerPubSubThread?.interrupt()
+        if (RedisAPI.isInitialized()) {
+            RedisAPI.jedisPool.destroy()
+        }
         mySqlQueueUpdater?.cancel()
-        utilsmanager.dbManager.closeConnection()
+        UtilsManager.dbManager.closeConnection()
 
-        log("§cPlugin unloaded!"); MKPluginSystem.loadedMKPlugins.remove(this@UtilsMain)
+        log("§cPlugin unloaded!")
+        MKPluginSystem.loadedMKPlugins.remove(this@UtilsMain)
     }
 
     private fun prepareRedis() {
         RedisAPI.managerData = config["Redis", RedisConnectionData::class.java]
-        if (RedisAPI.managerData.isEnabled) {
-            log("§eConnecting to Redis server...")
-            RedisAPI.createClient(RedisAPI.managerData)
-            RedisAPI.connectClient()
-            if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
-            RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
-            if (RedisAPI.useToSyncBungeePlayers) {
-                RedisBungeeAPI.bukkitServerOnEnable()
-            }
-            log("§aConnected to Redis server!")
-
-            if (RedisAPI.useToSyncBungeePlayers) {
-                val newServerList = mutableListOf(*RedisBungeeAPI.getSpigotServers().toTypedArray())
-                if (!newServerList.contains(RedisBungeeAPI.spigotServerName)) {
-                    newServerList.add(RedisBungeeAPI.spigotServerName)
-                }
-                RedisAPI.insertStringList("mkUtils", "BungeeAPI:Servers", newServerList, false)
-                RedisAPI.insertStringList(
-                    "mkUtils",
-                    "BungeeAPI:Servers:${RedisBungeeAPI.spigotServerName}:Players",
-                    mutableListOf(),
-                    false
-                )
-                syncDelay(1) {
-                    RedisAPI.sendEvent(
-                        "mkUtils:BungeeAPI:Event:ServerPowerAction",
-                        "${RedisBungeeAPI.spigotServerName};on"
-                    )
-                } // It'll be executed on the end of Spigot Server load
-            }
-        } else {
+        if (!RedisAPI.managerData.isEnabled) {
             log("§cRedis is not active on the config file. Some plugins and MK systems may not work correctly.")
+            return
         }
+        log("§eConnecting to Redis server...")
+        RedisAPI.onEnablePrepareRedisAPI()
+        if (!RedisAPI.isInitialized()) error("Cannot connect to Redis server")
+        RedisAPI.useToSyncBungeePlayers = RedisAPI.managerData.syncBungeeDataUsingRedis
+        if (RedisBungeeAPI.isEnabled) {
+            RedisBungeeAPI.bukkitServerOnEnable()
+            syncDelay(1) {
+                RedisBungeeAPI.updateSpigotServerState(true)
+            } // This will be executed after server is done loading
+        }
+        log("§aConnected to Redis server!")
     }
 
     private fun prepareMySQL() {
-        manager.sqlManager = SQLManager(config["Database", DBManager::class.java])
-        if (manager.sqlManager.dbManager.isEnabled) {
-            log("§eConnecting to MySQL database...")
-            utilsmanager.dbManager.openConnection()
-            if (!utilsmanager.sqlManager.hasConnection()) error("Cannot connect to MySQL database")
-            log("§aConnected to MySQL database!")
-        } else {
+        UtilsManager.sqlManager = SQLManager(config["Database", DBManager::class.java])
+        if (!UtilsManager.sqlManager.dbManager.isEnabled) {
             log("§cThe MySQL is not active on the config file. Some plugins and MK systems may not work correctly.")
+            return
         }
+        log("§eConnecting to MySQL database...")
+        UtilsManager.dbManager.openConnection()
+        if (!UtilsManager.sqlManager.hasConnection()) error("Cannot connect to MySQL database")
+        log("§aConnected to MySQL database!")
     }
 
     private fun prepareStorageAPI() {
@@ -213,14 +190,14 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
 
         // Storable Custom Objects
         StorageAPI.registerStorable(Location::class.java, LocationStorable())
-        // StorageAPI.registerStorable(MineItemStorable::class.java, MineItemStorable()) // not finished yet
+        // StorageAPI.registerStorable(MineItemStorable::class.java, MineItemStorable()) // Unfinished
 
         StorageAPI.startGson() // EduardAPI
     }
 
     private fun preparePlaceholders() { // mkUtils default placeholders
         Mine.addReplacer("mkutils_players") {
-            Bukkit.getOnlinePlayers().size.formatEN()
+            Bukkit.getOnlinePlayers().size.formatValue()
         }
         Mine.addReplacer("mkbungeeapi_players") {
             try {
@@ -232,7 +209,6 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     }
 
     private fun prepareDebugs() {
-        // mkUtils Menu System - Debug Mode
         if (config.getBoolean("MenuAPI.debugMode")) {
             SinglePageExampleMenu().registerMenu(this)
             ExampleMenuCommand().registerCommand(this)
@@ -261,7 +237,7 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         if (config.getBoolean("MenuAPI.autoUpdateMenus")) {
             AutoUpdateMenusTask().syncTimer()
         }
-        PlayerTargetAtPlayerTask().syncTimer()
+        PlayerTargetAtPlayerTask().asyncTimer()
     }
 
     private fun resetScoreboards() { // EduardAPI
@@ -335,10 +311,10 @@ class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
         config.saveConfig()
     }
 
-    override val isFree: Boolean get() = true
-
-    override fun log(msg: String) {
-        Bukkit.getConsoleSender().sendMessage("§b[${systemName}] §f${msg}")
+    override fun log(vararg msg: String) {
+        msg.forEach {
+            Bukkit.getConsoleSender().sendMessage("§b[${systemName}] §f${it}")
+        }
     }
 
     override fun getPlugin(): Any {

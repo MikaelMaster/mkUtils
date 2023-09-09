@@ -1,21 +1,34 @@
 package com.mikael.mkutils.api.redis
 
-import redis.clients.jedis.Jedis
-
+/**
+ * Data used by [RedisAPI] to manage connections.
+ *
+ * @see RedisAPI.managerData
+ */
 class RedisConnectionData(
 
-    /**
-     * Data to create a redis client ([Jedis]) using the [RedisAPI].
-     *
-     * @see Jedis
-     * @see RedisAPI.usedRedisConnectionData
-     * @see RedisAPI
-     */
-
     var isEnabled: Boolean = false,
+
+    /**
+     * @see RedisBungeeAPI
+     */
     var syncBungeeDataUsingRedis: Boolean = false,
+
     var usePass: Boolean = false,
+
     var pass: String = "password",
+
     var port: Int = 6379,
-    var host: String = "localhost"
+
+    var host: String = "localhost",
+
+    var jedisPoolMaxClients: Int = 50,
+
+    var jedisPoolMaxIdle: Int = 50,
+
+    var jedisPoolMinIdle: Int = 8,
+
+    var jedisPoolTestWhileIdle: Boolean = true,
+
+    var jedisPoolMaxTimeout: Int = 3000
 )

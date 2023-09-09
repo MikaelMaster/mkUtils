@@ -1,6 +1,6 @@
 package com.mikael.mkutils.spigot.api
 
-import com.mikael.mkutils.api.formatEN
+import com.mikael.mkutils.api.formatValue
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.spigot.UtilsMain
 import com.mikael.mkutils.spigot.api.lib.MineBook
@@ -21,6 +21,13 @@ import org.bukkit.entity.*
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+
+/**
+ * Shortcut to get the [UtilsMain.instance].
+ *
+ * @return the [UtilsMain.instance].
+ */
+val utilsMain get() = UtilsMain.instance
 
 /**
  * Transforms a [String]? into a [Component].
@@ -564,7 +571,7 @@ inline fun Player.asyncLoading(
         } finally {
             UtilsMain.instance.syncTask {
                 runnable.cancel()
-                this.actionBar("§a∎∎∎∎∎ §8${(System.currentTimeMillis() - runStart).toInt().formatEN()} ms")
+                this.actionBar("§a∎∎∎∎∎ §8${(System.currentTimeMillis() - runStart).toInt().formatValue()} ms")
             }
         }
     }
@@ -621,7 +628,7 @@ inline fun Player.syncLoading(
             this.sendMessage(errorMessage)
         } finally {
             animating = false
-            this.actionBar("§a∎∎∎∎∎ §8${(System.currentTimeMillis() - runStart).toInt().formatEN()} ms")
+            this.actionBar("§a∎∎∎∎∎ §8${(System.currentTimeMillis() - runStart).toInt().formatValue()} ms")
         }
     }
 }

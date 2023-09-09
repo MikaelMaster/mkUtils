@@ -2,9 +2,12 @@ package com.mikael.mkutils.spigot.api.lib
 
 import com.mojang.authlib.GameProfile
 import com.mojang.authlib.properties.Property
+import net.minecraft.nbt.NBTCompressedStreamTools
+import net.minecraft.nbt.NBTTagCompound
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.block.CreatureSpawner
+import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
 import org.bukkit.inventory.ItemFlag
@@ -14,6 +17,9 @@ import org.bukkit.inventory.meta.LeatherArmorMeta
 import org.bukkit.inventory.meta.PotionMeta
 import org.bukkit.inventory.meta.SkullMeta
 import org.bukkit.potion.PotionEffect
+import java.io.ByteArrayOutputStream
+import java.io.DataOutput
+import java.io.DataOutputStream
 import java.util.*
 
 /**
@@ -236,5 +242,22 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
 
     fun skinId(skinId: String): MineItem { // Custom Skull Skin ID
         return this.skin("https://textures.minecraft.net/texture/${skinId}")
+    }
+
+    /**
+     * Transforms a [MineItem] to a [Base64]
+     *
+     * @author KoddyDev
+     */
+    fun toBase64(): String {
+        val nmsItemStack = CraftItemStack.asNMSCopy(this)
+        val nbtTagCompound = if (nmsItemStack.hasTag()) nmsItemStack.tag else NBTTagCompound()
+        nmsItemStack.save(nbtTagCompound)
+
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        val dataOutputStream = DataOutputStream(byteArrayOutputStream)
+        NBTCompressedStreamTools.a(nbtTagCompound, dataOutputStream as DataOutput)
+
+        return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray())
     }
 }
