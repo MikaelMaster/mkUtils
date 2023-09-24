@@ -7,5 +7,5 @@ Also credits to Eduard for the base for mkUtils, the EduardAPI. https://github.c
 
 Now I'll continue developing and updating just the mkUtilsLegacy as I need it.
 
-"It was a pleasure working on this project for so long."
- - Mikael <3
+"It was a pleasure working on this project for so long. <3"
+ - Mikael, 2023/09
