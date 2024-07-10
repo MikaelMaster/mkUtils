@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Meus Plugins.mkUtils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Meus Plugins.mkUtils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.mikael.mkUtils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.mikael.mkUtils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/mkUtils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/mkUtils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/mkUtils.test.iml" filepath="$PROJECT_DIR$/.idea/modules/mkUtils.test.iml" />

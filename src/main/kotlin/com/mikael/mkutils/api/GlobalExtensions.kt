@@ -1,4 +1,4 @@
-@file:Suppress("WARNINGS")
+@file:Suppress("WARNINGS", "UNCHECKED_CAST")
 
 package com.mikael.mkutils.api
 

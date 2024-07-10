@@ -1,4 +1,4 @@
-@file:Suppress("WARNINGS")
+@file:Suppress("WARNINGS", "DEPRECATION")
 
 package com.mikael.mkutils.bungee.api
 

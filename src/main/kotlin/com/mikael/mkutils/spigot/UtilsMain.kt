@@ -41,6 +41,7 @@ import org.bukkit.scheduler.BukkitTask
 import java.io.File
 import java.text.SimpleDateFormat
 
+@Suppress("DEPRECATION", "WARNINGS")
 class UtilsMain : JavaPlugin(), MKPlugin, BukkitTimeHandler {
     companion object {
         lateinit var instance: UtilsMain

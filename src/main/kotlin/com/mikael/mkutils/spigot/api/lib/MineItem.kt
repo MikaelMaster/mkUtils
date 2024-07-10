@@ -36,12 +36,13 @@ import java.util.*
  * @author Mikael
  * @see ItemStack
  */
+@Suppress("DEPRECATION", "WARNINGS")
 open class MineItem(item: ItemStack) : ItemStack(item) {
 
     constructor(material: Material) : this(ItemStack(material))
     constructor(material: Material, amount: Int) : this(ItemStack(material, amount))
 
-    fun name(name: String? = null): MineItem {
+    fun name(name: String): MineItem {
         val meta = this.itemMeta ?: return this
         meta.setDisplayName(name)
         this.itemMeta = meta
@@ -221,7 +222,7 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
         this.type = Material.PLAYER_HEAD
         if (this.itemMeta == null) return this
         val meta = this.itemMeta as SkullMeta
-        val profile = GameProfile(UUID.randomUUID(), null as String?)
+        val profile = GameProfile(UUID.randomUUID(), "MKjubs") // null as String?
         profile.properties.put("textures", Property("textures", textureBase64))
         try {
             val profileField = meta.javaClass.getDeclaredField("profile")
