@@ -14,9 +14,11 @@ java.targetCompatibility = JavaVersion.VERSION_17
 repositories {
     mavenLocal()
     mavenCentral()
-    maven("https://papermc.io/repo/repository/maven-public/")
+    maven {
+        name = "papermc"
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("https://jitpack.io/")
     maven("https://m2.dv8tion.net/releases")
 }
