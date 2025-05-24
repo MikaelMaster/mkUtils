@@ -61,7 +61,7 @@ open class MineCommand(command: String, vararg aliases: String) : CommandExecuto
     }
 
     // label = subcommand
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>?): Boolean {
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         try {
             if (permission != null && !sender.hasPermission(permission!!)) {
                 if (sender is Player) {

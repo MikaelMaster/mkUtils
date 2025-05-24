@@ -1,13 +1,11 @@
 package com.mikael.mkutils.spigot.api.lib
 
-import com.mojang.authlib.GameProfile
-import com.mojang.authlib.properties.Property
-import net.minecraft.nbt.NBTCompressedStreamTools
-import net.minecraft.nbt.NBTTagCompound
+import com.destroystokyo.paper.profile.PlayerProfile
+import com.destroystokyo.paper.profile.ProfileProperty
+import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Material
 import org.bukkit.block.CreatureSpawner
-import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
 import org.bukkit.inventory.ItemFlag
@@ -92,7 +90,8 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
         return this
     }
 
-    fun getLore(): List<String> {
+    @Suppress("WARNINGS")
+    override fun getLore(): List<String> {
         return if (this.hasItemMeta()) if (this.itemMeta!!.hasLore()) this.itemMeta!!.lore!! else emptyList() else emptyList()
     }
 
@@ -164,7 +163,7 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
      * @see ItemStack.clone
      */
     override fun clone(): MineItem {
-        return super.clone() as MineItem
+        return MineItem(super.clone())
     }
 
     // Change Custom Item Properties Functions
@@ -218,19 +217,14 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
         return this
     }
 
-    private fun texture(textureBase64: String): MineItem { // Custom Skull Texture
+    private fun texture(textureBase64: String): MineItem { // Custom Skin Texture
         this.type = Material.PLAYER_HEAD
-        if (this.itemMeta == null) return this
-        val meta = this.itemMeta as SkullMeta
-        val profile = GameProfile(UUID.randomUUID(), "MKjubs") // null as String?
-        profile.properties.put("textures", Property("textures", textureBase64))
-        try {
-            val profileField = meta.javaClass.getDeclaredField("profile")
-            profileField.isAccessible = true
-            profileField[meta] = profile
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
+        val meta = (this.itemMeta as? SkullMeta) ?: return this
+
+        val profile: PlayerProfile = Bukkit.createProfile(UUID.randomUUID())
+        profile.setProperty(ProfileProperty("textures", textureBase64))
+        meta.playerProfile = profile
+
         this.itemMeta = meta
         return this
     }
@@ -243,22 +237,5 @@ open class MineItem(item: ItemStack) : ItemStack(item) {
 
     fun skinId(skinId: String): MineItem { // Custom Skull Skin ID
         return this.skin("https://textures.minecraft.net/texture/${skinId}")
-    }
-
-    /**
-     * Transforms a [MineItem] to a [Base64]
-     *
-     * @author KoddyDev
-     */
-    fun toBase64(): String {
-        val nmsItemStack = CraftItemStack.asNMSCopy(this)
-        val nbtTagCompound = if (nmsItemStack.hasTag()) nmsItemStack.tag else NBTTagCompound()
-        nmsItemStack.save(nbtTagCompound)
-
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        val dataOutputStream = DataOutputStream(byteArrayOutputStream)
-        NBTCompressedStreamTools.a(nbtTagCompound, dataOutputStream as DataOutput)
-
-        return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray())
     }
 }

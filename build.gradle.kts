@@ -8,8 +8,9 @@ plugins {
 group = "com.mikael"
 version = "2.0"
 
-java.sourceCompatibility = JavaVersion.VERSION_17
-java.targetCompatibility = JavaVersion.VERSION_17
+java.sourceCompatibility = JavaVersion.VERSION_HIGHER
+java.targetCompatibility = JavaVersion.VERSION_HIGHER
+
 
 repositories {
     mavenLocal()
@@ -24,9 +25,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("net.md-5:bungeecord-api:1.16-R0.3")
-    compileOnly(files("libs/spigot-1.17.1.jar"))
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
     api("redis.clients:jedis:4.3.1")
