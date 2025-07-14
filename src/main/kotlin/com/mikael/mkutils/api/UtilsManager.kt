@@ -1,5 +1,6 @@
 package com.mikael.mkutils.api
 
+import com.mikael.mkutils.api.UtilsManager.sqlManager
 import net.eduard.api.lib.database.DBManager
 import net.eduard.api.lib.database.SQLManager
 import org.bukkit.plugin.java.JavaPlugin

@@ -277,22 +277,14 @@ fun URL.stream(): String {
 }
 
 /**
- * Used by 'URL.getJson()'.
- */
-private val jsonParser = JsonParser()
-
-/**
  * Returns a built [JsonObject] based on the returned response from the given [URL].
  *
  * @return A [JsonObject] from the given [URL].
- * @throws JsonIOException
- * @throws JsonSyntaxException
  * @author Mikael
  * @see URL.stream
- * @see jsonParser
  */
 fun URL.getJson(): JsonObject {
-    return jsonParser.parse(this.stream()).asJsonObject
+    return JsonParser.parseString(this.stream()).asJsonObject
 }
 
 /**

@@ -1,6 +1,12 @@
 package com.mikael.mkutils.api.redis
 
+import com.mikael.mkutils.api.redis.RedisAPI.exists
+import com.mikael.mkutils.api.redis.RedisAPI.existsAll
 import com.mikael.mkutils.api.redis.RedisAPI.getExtraClient
+import com.mikael.mkutils.api.redis.RedisAPI.getString
+import com.mikael.mkutils.api.redis.RedisAPI.isInitialized
+import com.mikael.mkutils.api.redis.RedisAPI.jedisPool
+import com.mikael.mkutils.api.redis.RedisAPI.jedisPoolConfig
 import com.mikael.mkutils.api.redis.RedisAPI.managerData
 import com.mikael.mkutils.api.runTryCatch
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig

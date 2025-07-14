@@ -3,6 +3,7 @@ package com.mikael.mkutils.spigot.api.lib.menu.example
 import com.mikael.mkutils.spigot.api.lib.MineItem
 import com.mikael.mkutils.spigot.api.lib.menu.MenuButton
 import com.mikael.mkutils.spigot.api.lib.menu.MineMenu
+import com.mikael.mkutils.spigot.api.lib.menu.example.SinglePageExampleMenu.Companion.instance
 import com.mikael.mkutils.spigot.api.soundPling
 import net.eduard.api.lib.kotlin.formatDate
 import net.eduard.api.lib.kotlin.formatHour

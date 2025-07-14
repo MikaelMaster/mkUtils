@@ -1,5 +1,6 @@
 package com.mikael.mkutils.api.redis
 
+import com.mikael.mkutils.api.redis.RedisBungeeAPI.isEnabled
 import com.mikael.mkutils.api.toTextComponent
 import com.mikael.mkutils.bungee.UtilsBungeeMain
 import com.mikael.mkutils.bungee.api.runBlock

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.mikael.mkutils.spigot.api.lib.menu
 
 import com.mikael.mkutils.api.isMultOf

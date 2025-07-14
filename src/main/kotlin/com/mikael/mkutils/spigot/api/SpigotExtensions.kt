@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.mikael.mkutils.spigot.api
 
 import com.mikael.mkutils.api.formatValue
@@ -738,7 +740,7 @@ fun Player.clearAllInventory(resetHoldSlot: Boolean = true) {
         this.inventory.heldItemSlot = 0
     }
     this.inventory.clear()
-    this.inventory.armorContents = arrayOf() // Clear armors
+    this.inventory.setArmorContents(arrayOf()) // Clear armors
 }
 
 /**
